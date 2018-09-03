@@ -87,8 +87,30 @@
           "type": "uint64"
         },
         {
-          "name": "secret",
+          "name": "commitment",
           "type": "checksum256"
+        }
+      ]
+    },
+    {
+      "name": "reveal_move",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        },
+        {
+          "name": "game_id",
+          "type": "uint64"
+        },
+        {
+          "name": "secret",
+          "type": "string"
+        },
+        {
+          "name": "real_value",
+          "type": "uint8"
         }
       ]
     }
@@ -107,6 +129,11 @@
     {
       "name": "offer_move",
       "type": "offer_move",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "reveal_move",
+      "type": "reveal_move",
       "ricardian_contract": ""
     }
   ],

@@ -95,7 +95,7 @@ public:
     });
   };
   // @abi action
-  void offer_move(account_name player, uint64_t game_id, checksum256 secret)
+  void offer_move(account_name player, uint64_t game_id, checksum256 commitment)
   {
     require_auth(player);
     auto games = game_table(_self, _self);
@@ -106,7 +106,7 @@ public:
     auto move_id = moves.available_primary_key();
     moves.emplace(player, [&](move &m) {
       m.id = move_id;
-      m.commitment = secret;
+      m.commitment = commitment;
     });
     games.modify(games.iterator_to(g), player, [&](game &g) {
       if (g.player1 == player)
@@ -117,6 +117,25 @@ public:
       {
         g.move2 = move_id;
       }
+    });
+  }
+  // @abi action
+  void reveal_move(account_name player, uint64_t game_id, std::string secret, char real_value)
+  {
+    require_auth(player);
+    auto games = game_table(_self, _self);
+    auto moves = move_table(_self, _self);
+    auto g = games.get(game_id);
+    eosio_assert((g.player1 == player) || (g.player2 == player), "Player dont play this game");
+    eosio_assert(g.move1 != 0, "Moves not complete");
+    eosio_assert(g.move2 != 0, "Moves not complete");
+    auto move_id = (g.player1 == player) ? g.move1 : g.move2;
+    auto m = moves.get(move_id);
+    eosio_assert(m.value != 0, "Move already revealed");
+    m.check_value(real_value, secret);
+    moves.modify(moves.iterator_to(m), player, [&](move &m) {
+      m.secret = secret;
+      m.value = real_value;
     });
   }
 };
