@@ -1,0 +1,109 @@
+{
+  "version": "eosio::abi/1.0",
+  "types": [],
+  "structs": [
+    {
+      "name": "game",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "player1",
+          "type": "name"
+        },
+        {
+          "name": "player2",
+          "type": "name"
+        },
+        {
+          "name": "move1",
+          "type": "uint64"
+        },
+        {
+          "name": "move2",
+          "type": "uint64"
+        }
+      ]
+    },
+    {
+      "name": "move",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "commitment",
+          "type": "checksum256"
+        },
+        {
+          "name": "secret",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "type": "uint8"
+        }
+      ]
+    },
+    {
+      "name": "start_game",
+      "base": "",
+      "fields": [
+        {
+          "name": "player1",
+          "type": "name"
+        }
+      ]
+    },
+    {
+      "name": "join_game",
+      "base": "",
+      "fields": [
+        {
+          "name": "player2",
+          "type": "name"
+        },
+        {
+          "name": "game_id",
+          "type": "uint64"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "start_game",
+      "type": "start_game",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "join_game",
+      "type": "join_game",
+      "ricardian_contract": ""
+    }
+  ],
+  "tables": [
+    {
+      "name": "moves",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "move"
+    },
+    {
+      "name": "games",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "game"
+    }
+  ],
+  "ricardian_clauses": [],
+  "error_messages": [],
+  "abi_extensions": []
+}
