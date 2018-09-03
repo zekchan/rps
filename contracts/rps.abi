@@ -73,6 +73,24 @@
           "type": "uint64"
         }
       ]
+    },
+    {
+      "name": "offer_move",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        },
+        {
+          "name": "game_id",
+          "type": "uint64"
+        },
+        {
+          "name": "secret",
+          "type": "checksum256"
+        }
+      ]
     }
   ],
   "actions": [
@@ -84,6 +102,11 @@
     {
       "name": "join_game",
       "type": "join_game",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "offer_move",
+      "type": "offer_move",
       "ricardian_contract": ""
     }
   ],

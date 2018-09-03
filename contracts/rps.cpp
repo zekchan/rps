@@ -78,7 +78,9 @@ public:
     games.emplace(player1, [&](game &g) {
       g.id = games.available_primary_key();
       g.player1 = player1;
-      g.player2 = N();
+      g.player2 = 0;
+      g.move1 = 0;
+      g.move2 = 0;
     });
   };
   // @abi action
@@ -87,11 +89,36 @@ public:
     require_auth(player2);
     auto games = game_table(_self, _self);
     auto g = games.get(game_id);
-    eosio_assert(g.player2 == N(), "Game already have second player");
+    eosio_assert(g.player2 == 0, "Game already have second player");
     games.modify(games.iterator_to(g), player2, [&](game &g) {
       g.player2 = player2;
     });
   };
+  // @abi action
+  void offer_move(account_name player, uint64_t game_id, checksum256 secret)
+  {
+    require_auth(player);
+    auto games = game_table(_self, _self);
+    auto moves = move_table(_self, _self);
+    auto g = games.get(game_id);
+    eosio_assert((g.player1 == player) || (g.player2 == player), "Player dont play this game");
+    eosio_assert(((g.player1 == player) ? g.move1 : g.move2) == 0, "Move already exists");
+    auto move_id = moves.available_primary_key();
+    moves.emplace(player, [&](move &m) {
+      m.id = move_id;
+      m.commitment = secret;
+    });
+    games.modify(games.iterator_to(g), player, [&](game &g) {
+      if (g.player1 == player)
+      {
+        g.move1 = move_id;
+      }
+      else
+      {
+        g.move2 = move_id;
+      }
+    });
+  }
 };
 
 EOSIO_ABI(rps, (start_game)(join_game))
