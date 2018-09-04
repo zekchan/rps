@@ -51,7 +51,7 @@
       ]
     },
     {
-      "name": "start_game",
+      "name": "startgame",
       "base": "",
       "fields": [
         {
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "name": "join_game",
+      "name": "joingame",
       "base": "",
       "fields": [
         {
@@ -75,7 +75,7 @@
       ]
     },
     {
-      "name": "offer_move",
+      "name": "offermove",
       "base": "",
       "fields": [
         {
@@ -93,7 +93,7 @@
       ]
     },
     {
-      "name": "reveal_move",
+      "name": "revealmove",
       "base": "",
       "fields": [
         {
@@ -117,23 +117,23 @@
   ],
   "actions": [
     {
-      "name": "start_game",
-      "type": "start_game",
+      "name": "startgame",
+      "type": "startgame",
       "ricardian_contract": ""
     },
     {
-      "name": "join_game",
-      "type": "join_game",
+      "name": "joingame",
+      "type": "joingame",
       "ricardian_contract": ""
     },
     {
-      "name": "offer_move",
-      "type": "offer_move",
+      "name": "offermove",
+      "type": "offermove",
       "ricardian_contract": ""
     },
     {
-      "name": "reveal_move",
-      "type": "reveal_move",
+      "name": "revealmove",
+      "type": "revealmove",
       "ricardian_contract": ""
     }
   ],

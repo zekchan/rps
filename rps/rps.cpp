@@ -71,7 +71,7 @@ public:
   typedef eosio::multi_index<N(games), game> game_table;
 
   // @abi action
-  void start_game(account_name player1)
+  void startgame(account_name player1)
   {
     require_auth(player1);
     auto games = game_table(_self, _self);
@@ -84,7 +84,7 @@ public:
     });
   };
   // @abi action
-  void join_game(account_name player2, uint64_t game_id)
+  void joingame(account_name player2, uint64_t game_id)
   {
     require_auth(player2);
     auto games = game_table(_self, _self);
@@ -95,7 +95,7 @@ public:
     });
   };
   // @abi action
-  void offer_move(account_name player, uint64_t game_id, checksum256 commitment)
+  void offermove(account_name player, uint64_t game_id, checksum256 commitment)
   {
     require_auth(player);
     auto games = game_table(_self, _self);
@@ -120,7 +120,7 @@ public:
     });
   }
   // @abi action
-  void reveal_move(account_name player, uint64_t game_id, std::string secret, char real_value)
+  void revealmove(account_name player, uint64_t game_id, std::string secret, char real_value)
   {
     require_auth(player);
     auto games = game_table(_self, _self);
@@ -140,4 +140,4 @@ public:
   }
 };
 
-EOSIO_ABI(rps, (start_game)(join_game))
+EOSIO_ABI(rps, (startgame)(joingame)(offermove)(revealmove))
