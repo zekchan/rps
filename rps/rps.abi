@@ -43,7 +43,7 @@
     {
       "name": "commitmove",
       "base": "",
-      "fields":[
+      "fields": [
         {
           "name": "player",
           "type": "name"
@@ -57,12 +57,39 @@
           "type": "checksum256"
         }
       ]
+    },
+    {
+      "name": "revealmove",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        },
+        {
+          "name": "gameid",
+          "type": "uint64"
+        },
+        {
+          "name": "move",
+          "type": "uint8"
+        },
+        {
+          "name": "secret",
+          "type": "string"
+        }
+      ]
     }
   ],
   "actions": [
     {
       "name": "commitmove",
       "type": "commitmove",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "revealmove",
+      "type": "revealmove",
       "ricardian_contract": ""
     }
   ],

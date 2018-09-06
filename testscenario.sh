@@ -20,3 +20,9 @@ cleos get table rps rps games
 echo "ALISE COMITTED MOVE"
 cleos push action rps commitmove '["alice", 0, "55f079f8d46a2dab2fe4441f094d502bf3b0194dbb259d996dd41be7c4cc1a0d"]' -p alice
 cleos get table rps rps games
+echo "BOB REVEALED HIS MOVE"
+cleos push action rps revealmove '["bob", 0, 1, "asdasdasd"]' -p bob
+cleos get table rps rps games
+echo "ALICE REVEALED HER MOVE"
+cleos push action rps revealmove '["alice", 0, 2, "sdfsskdjf"]' -p alice
+cleos get table rps rps games

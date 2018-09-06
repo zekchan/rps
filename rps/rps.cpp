@@ -42,7 +42,39 @@ public:
   typedef eosio::multi_index<N(games), game> games_index;
 
   games_index games_table;
-
+  // @abi action
+  void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
+  {
+    require_auth(player);
+    auto &game_row = games_table.get(gameid);
+    eosio_assert(
+        !((game_row.commitment1 == EMPTY_CHECKSUM) || (game_row.commitment2 == EMPTY_CHECKSUM)),
+        "both players shoud commit their hashed moves");
+    // немного C++ магии
+    const std::string checkstring = std::to_string(move) + secret;
+    char data[checkstring.length()];
+    strcpy(data, checkstring.c_str());
+    if (player == game_row.player1)
+    {
+      eosio_assert(game_row.move1 == 0, "already revealed");
+      assert_sha256(data, sizeof(data), (const checksum256 *)&game_row.commitment1);
+      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+        g.move1 = move;
+      });
+    }
+    else if (player == game_row.player2)
+    {
+      eosio_assert(game_row.move2 == 0, "already revealed");
+      assert_sha256(data, sizeof(data), &game_row.commitment2);
+      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+        g.move2 = move;
+      });
+    }
+    else
+    {
+      eosio_assert(false, "wrong player");
+    }
+  }
   // @abi action
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
   {
@@ -137,4 +169,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove))
