@@ -15,6 +15,10 @@
           "type": "name"
         },
         {
+          "name": "player2",
+          "type": "name"
+        },
+        {
           "name": "bet",
           "type": "asset"
         }

@@ -21,17 +21,18 @@ public:
   {
     uint64_t id;
     account_name player1;
+    account_name player2;
     asset bet;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(bet))
+    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet))
   };
 
   typedef eosio::multi_index<N(games), game> games_index;
 
   games_index games_table;
 
-  void startgame(const account_name player1, const asset bet)
+  void startGame(const account_name player1, const asset bet)
   {
     games_table.emplace(_self, [&](game &g) {
       g.id = games_table.available_primary_key();
@@ -39,8 +40,18 @@ public:
       g.bet = bet;
     });
   };
+  void joinGame(const account_name player2, const asset bet, uint64_t gameId)
+  {
+    auto& game_row = games_table.get(gameId);
+    eosio_assert(game_row.player1 != player2, "same players");
+    eosio_assert(game_row.player2 == N(), "Game alrady have second player");
+    eosio_assert(game_row.bet == bet, "bet must be same");
+    games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      g.player2 = player2;
+    });
+  }
   // eosio.token transfer handler
-  void transfer(const account_name from, const account_name to, const asset& quantity, const std::string memo)
+  void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
   {
     require_auth(from);
     checkBet(quantity);
@@ -48,7 +59,12 @@ public:
     auto action = memo.substr(0, del);
     if (action == "create")
     {
-      startgame(from, quantity);
+      startGame(from, quantity);
+    }
+    else if (action == "join")
+    {
+      uint64_t gameId = std::stoull(memo.substr(del + 1));
+      joinGame(from, quantity, gameId);
     }
     else
     {
@@ -56,10 +72,6 @@ public:
     }
   }
 };
-
-
-
-
 
 #undef EOSIO_ABI
 
