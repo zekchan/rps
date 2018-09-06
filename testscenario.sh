@@ -2,6 +2,7 @@
 
 # using https://github.com/zekchan/eos-local-env-setup setup
 
+echo "Compiling contract"
 eosiocpp -o ./rps/rps.wasm ./rps/rps.cpp
 cleos create account eosio rps EOS88PUwFsK1wYAiQEqEhUAGwXyv1hCcj4XPuCkvEyJ6sbtsxELiF EOS88PUwFsK1wYAiQEqEhUAGwXyv1hCcj4XPuCkvEyJ6sbtsxELiF
 cleos set contract rps ./rps -p rps

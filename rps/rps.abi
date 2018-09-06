@@ -21,6 +21,22 @@
         {
           "name": "bet",
           "type": "asset"
+        },
+        {
+          "name": "commitment1",
+          "type": "checksum256"
+        },
+        {
+          "name": "commitment1",
+          "type": "checksum256"
+        },
+        {
+          "name": "move1",
+          "type": "uint8"
+        },
+        {
+          "name": "move2",
+          "type": "uint8"
         }
       ]
     }

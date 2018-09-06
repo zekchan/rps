@@ -23,9 +23,13 @@ public:
     account_name player1;
     account_name player2;
     asset bet;
+    checksum256 commitment1;
+    checksum256 commitment2;
+    uint8_t move1;
+    uint8_t move2;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet))
+    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2))
   };
 
   typedef eosio::multi_index<N(games), game> games_index;
