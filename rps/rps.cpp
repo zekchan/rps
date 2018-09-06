@@ -4,17 +4,24 @@
 #include <string>
 
 using namespace eosio;
-
+const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0};
 class rps : public eosio::contract
 {
 public:
   using contract::contract;
   rps(account_name self) : contract(self), games_table(self, self) {}
-  static void checkBet(asset bet)
+  static void assert_bet(asset bet)
   {
     eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
     eosio_assert(bet.is_valid(), "Invalid token transfer");
     eosio_assert(bet.amount > 0, "Quantity must be positive");
+  }
+  static void assert_move(uint8_t move)
+  {
+    eosio_assert((move >= 0) && (move <= 3), "incorect move value");
   }
   // @abi table
   struct game
@@ -36,17 +43,46 @@ public:
 
   games_index games_table;
 
+  // @abi action
+  void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
+  {
+    require_auth(player);
+    auto &game_row = games_table.get(gameid);
+    if (player == game_row.player1)
+    {
+      eosio_assert(game_row.commitment1 == EMPTY_CHECKSUM, "already commited");
+      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+        g.commitment1 = commitment;
+      });
+    }
+    else if (player == game_row.player2)
+    {
+      eosio_assert(game_row.commitment2 == EMPTY_CHECKSUM, "already commited");
+      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+        g.commitment2 = commitment;
+      });
+    }
+    else
+    {
+      eosio_assert(false, "wrong player");
+    }
+  }
+  // transfer action
   void startGame(const account_name player1, const asset bet)
   {
     games_table.emplace(_self, [&](game &g) {
       g.id = games_table.available_primary_key();
       g.player1 = player1;
+      g.commitment1 = EMPTY_CHECKSUM;
+      g.commitment2 = EMPTY_CHECKSUM;
       g.bet = bet;
     });
   };
-  void joinGame(const account_name player2, const asset bet, uint64_t gameId)
+  // transfer action
+  void joinGame(const account_name player2, const asset bet, uint64_t gameid)
   {
-    auto& game_row = games_table.get(gameId);
+    assert_bet(bet);
+    auto &game_row = games_table.get(gameid);
     eosio_assert(game_row.player1 != player2, "same players");
     eosio_assert(game_row.player2 == N(), "Game alrady have second player");
     eosio_assert(game_row.bet == bet, "bet must be same");
@@ -58,7 +94,7 @@ public:
   void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
   {
     require_auth(from);
-    checkBet(quantity);
+    assert_bet(quantity);
     size_t del = memo.find(':');
     auto action = memo.substr(0, del);
     if (action == "create")
@@ -101,4 +137,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer))
+EOSIO_ABI(rps, (transfer)(commitmove))
