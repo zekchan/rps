@@ -15,141 +15,23 @@
           "type": "name"
         },
         {
-          "name": "player2",
-          "type": "name"
-        },
-        {
-          "name": "move1",
-          "type": "uint64"
-        },
-        {
-          "name": "move2",
-          "type": "uint64"
-        }
-      ]
-    },
-    {
-      "name": "move",
-      "base": "",
-      "fields": [
-        {
-          "name": "id",
-          "type": "uint64"
-        },
-        {
-          "name": "commitment",
-          "type": "checksum256"
-        },
-        {
-          "name": "secret",
-          "type": "string"
-        },
-        {
-          "name": "value",
-          "type": "uint8"
-        }
-      ]
-    },
-    {
-      "name": "startgame",
-      "base": "",
-      "fields": [
-        {
-          "name": "player1",
-          "type": "name"
-        }
-      ]
-    },
-    {
-      "name": "joingame",
-      "base": "",
-      "fields": [
-        {
-          "name": "player2",
-          "type": "name"
-        },
-        {
-          "name": "game_id",
-          "type": "uint64"
-        }
-      ]
-    },
-    {
-      "name": "offermove",
-      "base": "",
-      "fields": [
-        {
-          "name": "player",
-          "type": "name"
-        },
-        {
-          "name": "game_id",
-          "type": "uint64"
-        },
-        {
-          "name": "commitment",
-          "type": "checksum256"
-        }
-      ]
-    },
-    {
-      "name": "revealmove",
-      "base": "",
-      "fields": [
-        {
-          "name": "player",
-          "type": "name"
-        },
-        {
-          "name": "game_id",
-          "type": "uint64"
-        },
-        {
-          "name": "secret",
-          "type": "string"
-        },
-        {
-          "name": "real_value",
-          "type": "uint8"
+          "name": "bet",
+          "type": "asset"
         }
       ]
     }
   ],
-  "actions": [
-    {
-      "name": "startgame",
-      "type": "startgame",
-      "ricardian_contract": ""
-    },
-    {
-      "name": "joingame",
-      "type": "joingame",
-      "ricardian_contract": ""
-    },
-    {
-      "name": "offermove",
-      "type": "offermove",
-      "ricardian_contract": ""
-    },
-    {
-      "name": "revealmove",
-      "type": "revealmove",
-      "ricardian_contract": ""
-    }
-  ],
+  "actions": [],
   "tables": [
-    {
-      "name": "moves",
-      "index_type": "i64",
-      "key_names": [],
-      "key_types": [],
-      "type": "move"
-    },
     {
       "name": "games",
       "index_type": "i64",
-      "key_names": [],
-      "key_types": [],
+      "key_names": [
+        "id"
+      ],
+      "key_types": [
+        "uint64"
+      ],
       "type": "game"
     }
   ],

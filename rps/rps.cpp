@@ -1,5 +1,6 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/crypto.h>
+#include <eosiolib/asset.hpp>
 #include <string>
 
 using namespace eosio;
@@ -8,136 +9,80 @@ class rps : public eosio::contract
 {
 public:
   using contract::contract;
-  rps(account_name self) : contract(self) {}
-  static void check_move_value(char value)
+  rps(account_name self) : contract(self), games_table(self, self) {}
+  static void checkBet(asset bet)
   {
-    eosio_assert(
-        (value == 'R') ||
-            (value == 'P') ||
-            (value == 'S'),
-        "move must be less then 'R', 'P' or 'S'");
+    eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
+    eosio_assert(bet.is_valid(), "Invalid token transfer");
+    eosio_assert(bet.amount > 0, "Quantity must be positive");
   }
-  static bool first_wins(char move1, char move2)
-  {
-    /*
-       R - rock
-       P - papper
-       S - scissors
-      */
-    if (move1 == 'R')
-    {
-      return move2 == 'S';
-    }
-    if (move1 == 'P')
-    {
-      return move2 == 'R';
-    }
-    if (move1 == 'S')
-    {
-      return move2 == 'P';
-    }
-    return true;
-  };
-  // @abi table
-  struct move
-  {
-    uint64_t id;
-    checksum256 commitment;
-    std::string secret;
-    char value;
-    uint64_t primary_key() const { return id; };
-    void check_value(char check_value, std::string check_secret) const
-    {
-      check_secret.push_back(check_value);
-      assert_sha256(check_secret.c_str(), check_secret.length(), &commitment);
-    }
-    EOSLIB_SERIALIZE(move, (id)(commitment)(secret)(value))
-  };
-
-  typedef eosio::multi_index<N(moves), move> move_table;
   // @abi table
   struct game
   {
     uint64_t id;
     account_name player1;
-    account_name player2;
-    uint64_t move1;
-    uint64_t move2;
+    asset bet;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (player1)(player2)(move1)(move2))
+    EOSLIB_SERIALIZE(game, (id)(player1)(bet))
   };
 
-  typedef eosio::multi_index<N(games), game> game_table;
+  typedef eosio::multi_index<N(games), game> games_index;
 
-  // @abi action
-  void startgame(account_name player1)
+  games_index games_table;
+
+  void startgame(const account_name player1, const asset bet)
   {
-    require_auth(player1);
-    auto games = game_table(_self, _self);
-    games.emplace(player1, [&](game &g) {
-      g.id = games.available_primary_key();
+    games_table.emplace(_self, [&](game &g) {
+      g.id = games_table.available_primary_key();
       g.player1 = player1;
-      g.player2 = 0;
-      g.move1 = 0;
-      g.move2 = 0;
+      g.bet = bet;
     });
   };
-  // @abi action
-  void joingame(account_name player2, uint64_t game_id)
+  // eosio.token transfer handler
+  void transfer(const account_name from, const account_name to, const asset& quantity, const std::string memo)
   {
-    require_auth(player2);
-    auto games = game_table(_self, _self);
-    auto g = games.get(game_id);
-    eosio_assert(g.player2 == 0, "Game already have second player");
-    games.modify(games.iterator_to(g), player2, [&](game &g) {
-      g.player2 = player2;
-    });
-  };
-  // @abi action
-  void offermove(account_name player, uint64_t game_id, checksum256 commitment)
-  {
-    require_auth(player);
-    auto games = game_table(_self, _self);
-    auto moves = move_table(_self, _self);
-    auto g = games.get(game_id);
-    eosio_assert((g.player1 == player) || (g.player2 == player), "Player dont play this game");
-    eosio_assert(((g.player1 == player) ? g.move1 : g.move2) == 0, "Move already exists");
-    auto move_id = moves.available_primary_key();
-    moves.emplace(player, [&](move &m) {
-      m.id = move_id;
-      m.commitment = commitment;
-    });
-    games.modify(games.iterator_to(g), player, [&](game &g) {
-      if (g.player1 == player)
-      {
-        g.move1 = move_id;
-      }
-      else
-      {
-        g.move2 = move_id;
-      }
-    });
-  }
-  // @abi action
-  void revealmove(account_name player, uint64_t game_id, std::string secret, char real_value)
-  {
-    require_auth(player);
-    auto games = game_table(_self, _self);
-    auto moves = move_table(_self, _self);
-    auto g = games.get(game_id);
-    eosio_assert((g.player1 == player) || (g.player2 == player), "Player dont play this game");
-    eosio_assert(g.move1 != 0, "Moves not complete");
-    eosio_assert(g.move2 != 0, "Moves not complete");
-    auto move_id = (g.player1 == player) ? g.move1 : g.move2;
-    auto m = moves.get(move_id);
-    eosio_assert(m.value != 0, "Move already revealed");
-    m.check_value(real_value, secret);
-    moves.modify(moves.iterator_to(m), player, [&](move &m) {
-      m.secret = secret;
-      m.value = real_value;
-    });
+    require_auth(from);
+    checkBet(quantity);
+    size_t del = memo.find(':');
+    auto action = memo.substr(0, del);
+    if (action == "create")
+    {
+      startgame(from, quantity);
+    }
+    else
+    {
+      eosio_assert(false, "wrong cmd");
+    }
   }
 };
 
-EOSIO_ABI(rps, (startgame)(joingame)(offermove)(revealmove))
+
+
+
+
+#undef EOSIO_ABI
+
+#define EOSIO_ABI(TYPE, MEMBERS)                                                                                         \
+  extern "C"                                                                                                             \
+  {                                                                                                                      \
+    void apply(uint64_t receiver, uint64_t code, uint64_t action)                                                        \
+    {                                                                                                                    \
+      if (action == N(onerror))                                                                                          \
+      {                                                                                                                  \
+        /* onerror is only valid if it is for the "eosio" code account and authorized by "eosio"'s "active permission */ \
+        eosio_assert(code == N(eosio), "onerror action's are only valid from the \"eosio\" system account");             \
+      }                                                                                                                  \
+      auto self = receiver;                                                                                              \
+      if (code == self || code == N(eosio.token) || action == N(onerror))                                                \
+      {                                                                                                                  \
+        TYPE thiscontract(self);                                                                                         \
+        switch (action)                                                                                                  \
+        {                                                                                                                \
+          EOSIO_API(TYPE, MEMBERS)                                                                                       \
+        }                                                                                                                \
+        /* does not allow destructor of thiscontract to run: eosio_exit(0); */                                           \
+      }                                                                                                                  \
+    }                                                                                                                    \
+  }
+EOSIO_ABI(rps, (transfer))
