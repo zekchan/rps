@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # using https://github.com/zekchan/eos-local-env-setup setup
-
+source ./helpers.sh
 sleep 0.4
 echo "BOB CREATED GAME"
 cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", "create:"]' -p bob
@@ -10,6 +10,9 @@ sleep 0.4
 echo "ALICE CONNECTED TO GAME"
 cleos push action eosio.token transfer '["alice", "rps", "1.0000 EOS", "join:0"]' -p alice
 cleos get table rps rps games
+balance bob
+balance alice
+balance rps
 sleep 0.4
 # bob - move = 1; secret = "asdasdasd"; sha256(move + secret) = "971bffc5e741ecbc9beef4a8e00c7dd9aa7b8c8af6ffc5198bc2c52f3f1e455b"
 echo "BOB COMITTED MOVE"
@@ -28,3 +31,6 @@ sleep 0.4
 echo "ALICE REVEALED HER MOVE"
 cleos push action rps revealmove '["alice", 0, 2, "sdfsskdjf"]' -p alice
 cleos get table rps rps games
+balance bob
+balance alice
+balance rps

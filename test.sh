@@ -3,3 +3,4 @@
 ./deployContract.sh
 ./testscenarioAliceWins.sh
 ./testscenarioDraw.sh
+./testscenarioCancelgame.sh

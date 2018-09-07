@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # using https://github.com/zekchan/eos-local-env-setup setup
-
+source ./helpers.sh
 echo "BOB CREATED GAME"
 cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", "create:"]' -p bob
 cleos get table rps rps games
@@ -48,3 +48,6 @@ echo "ALICE REVEALED HER MOVE"
 cleos push action rps revealmove '["alice", 0, 2, "sdfsskdjf"]' -p alice
 cleos get table rps rps games
 sleep 0.4
+balance bob
+balance alice
+balance rps

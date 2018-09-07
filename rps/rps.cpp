@@ -111,6 +111,20 @@ public:
     games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой
   }
   // @abi action
+  void cancelgame(const account_name player, uint64_t gameid)
+  {
+    require_auth(player);
+    auto &game_row = games_table.get(gameid);
+    eosio_assert(game_row.player2 == N(), "cant cancel game with second player");
+    eosio_assert(game_row.player1 == player, "only player1 can cancel game");
+    action(
+        permission_level{_self, N(active)},
+        N(eosio.token), N(transfer),
+        currency::transfer{_self, player, game_row.bet, "return bet"})
+        .send();
+    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой    
+  }
+  // @abi action
   void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
   {
     require_auth(player);
@@ -198,9 +212,10 @@ public:
   void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
   {
     require_auth(from);
-    if (from == _self) {
+    if (from == _self)
+    {
       // вывод токенов - просто разрещаем (В будующем надо добавить еще логики)
-      return; 
+      return;
     }
     assert_bet(quantity);
     size_t del = memo.find(':');
@@ -245,4 +260,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame))

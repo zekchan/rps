@@ -83,6 +83,20 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "cancelgame",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        },
+        {
+          "name": "gameid",
+          "type": "uint64"
+        }
+      ]
     }
   ],
   "actions": [
@@ -94,6 +108,11 @@
     {
       "name": "revealmove",
       "type": "revealmove",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "cancelgame",
+      "type": "cancelgame",
       "ricardian_contract": ""
     }
   ],
