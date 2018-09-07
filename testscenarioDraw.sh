@@ -2,6 +2,7 @@
 
 # using https://github.com/zekchan/eos-local-env-setup setup
 source ./helpers.sh
+echo "*****************DRAW GAME TEST *****************"
 echo "BOB CREATED GAME"
 cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", "create:"]' -p bob
 cleos get table rps rps games

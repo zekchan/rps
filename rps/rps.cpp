@@ -15,7 +15,7 @@ class rps : public eosio::contract
 public:
   using contract::contract;
   rps(account_name self) : contract(self), games_table(self, self) {}
-  const uint32_t AFK_TIME = 2 * 60; // 2 minutes
+  const static uint32_t AFK_TIME = 2 * 60; // 2 minutes
   static void assert_bet(asset bet)
   {
     eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
@@ -26,6 +26,11 @@ public:
   {
     eosio_assert((move >= 0) && (move <= 5), "incorect move value");
   }
+  static bool expired(eosio::time_point_sec seen)
+  {
+    return eosio::time_point_sec(now() - AFK_TIME) > seen;
+  }
+
   static uint8_t calcWinner(uint8_t move1, uint8_t move2)
   {
     /*
@@ -83,20 +88,31 @@ public:
   typedef eosio::multi_index<N(games), game> games_index;
 
   games_index games_table;
-
+  void handleWinner(account_name winner, const game &game_row)
+  {
+    auto prize = game_row.bet;
+    prize.amount *= 2;
+    action(
+        permission_level{_self, N(active)},
+        N(eosio.token), N(transfer),
+        currency::transfer{_self, winner, prize, std::string("win:") + std::to_string(game_row.id)})
+        .send();
+    games_table.erase(game_row); // удаляем строчку с игрой
+  }
   void playGame(uint64_t gameid)
   {
     // play game
-    auto &game_row = games_table.get(gameid);
-    if (!(game_row.move1 && game_row.move2))
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
+    if (!(game_row->move1 && game_row->move2))
     {
       return;
     }
-    auto result = calcWinner(game_row.move1, game_row.move2);
+    auto result = calcWinner(game_row->move1, game_row->move2);
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
-      return games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      return games_table.modify(game_row, _self, [&](auto &g) {
         g.move1 = 0;
         g.move2 = 0;
         g.commitment1 = EMPTY_CHECKSUM;
@@ -105,15 +121,31 @@ public:
         g.round++;
       });
     }
-    auto winner = (result == 1) ? game_row.player1 : game_row.player2;
-    auto prize = game_row.bet;
-    prize.amount *= 2;
-    action(
-        permission_level{_self, N(active)},
-        N(eosio.token), N(transfer),
-        currency::transfer{_self, winner, prize, std::string("win:") + std::to_string(game_row.id)})
-        .send();
-    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой
+    auto winner = (result == 1) ? game_row->player1 : game_row->player2;
+    handleWinner(winner, *game_row);
+  }
+  // @abi action
+  void claimexpired(const account_name player, uint64_t gameid)
+  {
+    require_auth(player);
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
+    eosio_assert(game_row->player2 != N(), "player2 should connect to game");
+
+    if (player == game_row->player1)
+    {
+      eosio_assert(expired(game_row->lastseen2), "player not afk");
+      handleWinner(player, *game_row);
+    }
+    else if (player == game_row->player2)
+    {
+      eosio_assert(expired(game_row->lastseen1), "player not afk");
+      handleWinner(player, *game_row);
+    }
+    else
+    {
+      eosio_assert(false, "wrong player");
+    }
   }
   // @abi action
   void cancelgame(const account_name player, uint64_t gameid)
@@ -271,4 +303,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired))

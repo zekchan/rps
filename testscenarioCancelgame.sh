@@ -3,6 +3,7 @@
 # using https://github.com/zekchan/eos-local-env-setup setup
 
 source ./helpers.sh
+echo "*****************CANCELGAME TEST *****************"
 sleep 0.4
 balance bob
 balance rps

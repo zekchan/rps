@@ -4,3 +4,4 @@
 ./testscenarioAliceWins.sh
 ./testscenarioDraw.sh
 ./testscenarioCancelgame.sh
+./testscenarioClaimexperied.sh
