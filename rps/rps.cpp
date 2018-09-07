@@ -2,6 +2,7 @@
 #include <eosiolib/crypto.h>
 #include <eosiolib/asset.hpp>
 #include <eosiolib/currency.hpp>
+#include <eosiolib/time.hpp>
 #include <string>
 
 using namespace eosio;
@@ -14,6 +15,7 @@ class rps : public eosio::contract
 public:
   using contract::contract;
   rps(account_name self) : contract(self), games_table(self, self) {}
+  const uint32_t AFK_TIME = 2 * 60; // 2 minutes
   static void assert_bet(asset bet)
   {
     eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
@@ -70,10 +72,12 @@ public:
     checksum256 commitment2;
     uint8_t move1;
     uint8_t move2;
+    eosio::time_point_sec lastseen1;
+    eosio::time_point_sec lastseen2;
     uint8_t round;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2)(round))
+    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2)(lastseen1)(lastseen2)(round))
   };
 
   typedef eosio::multi_index<N(games), game> games_index;
@@ -97,6 +101,7 @@ public:
         g.move2 = 0;
         g.commitment1 = EMPTY_CHECKSUM;
         g.commitment2 = EMPTY_CHECKSUM;
+        g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now());
         g.round++;
       });
     }
@@ -122,7 +127,7 @@ public:
         N(eosio.token), N(transfer),
         currency::transfer{_self, player, game_row.bet, "return bet"})
         .send();
-    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой    
+    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой
   }
   // @abi action
   void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
@@ -143,6 +148,7 @@ public:
       assert_sha256(data, sizeof(data), (const checksum256 *)&game_row.commitment1);
       games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
         g.move1 = move;
+        g.lastseen1 = eosio::time_point_sec(now());
       });
     }
     else if (player == game_row.player2)
@@ -151,6 +157,7 @@ public:
       assert_sha256(data, sizeof(data), &game_row.commitment2);
       games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
         g.move2 = move;
+        g.lastseen2 = eosio::time_point_sec(now());
       });
     }
     else
@@ -170,6 +177,7 @@ public:
       eosio_assert(game_row.commitment1 == EMPTY_CHECKSUM, "already commited");
       games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
         g.commitment1 = commitment;
+        g.lastseen1 = eosio::time_point_sec(now());
       });
     }
     else if (player == game_row.player2)
@@ -177,6 +185,7 @@ public:
       eosio_assert(game_row.commitment2 == EMPTY_CHECKSUM, "already commited");
       games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
         g.commitment2 = commitment;
+        g.lastseen2 = eosio::time_point_sec(now());
       });
     }
     else
@@ -192,6 +201,7 @@ public:
       g.player1 = player1;
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
+      g.lastseen1 = g.lastseen2 = eosio::time_point_sec(0);
       g.bet = bet;
       g.round = 1;
     });
@@ -206,6 +216,7 @@ public:
     eosio_assert(game_row.bet == bet, "bet must be same");
     games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
       g.player2 = player2;
+      g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
     });
   }
   // eosio.token transfer handler

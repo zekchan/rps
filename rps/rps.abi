@@ -39,6 +39,14 @@
           "type": "uint8"
         },
         {
+          "name": "lastseen1",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "lastseen2",
+          "type": "time_point_sec"
+        },
+        {
           "name": "round",
           "type": "uint8"
         }
