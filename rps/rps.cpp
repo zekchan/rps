@@ -1,6 +1,7 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/crypto.h>
 #include <eosiolib/asset.hpp>
+#include <eosiolib/currency.hpp>
 #include <string>
 
 using namespace eosio;
@@ -21,7 +22,42 @@ public:
   }
   static void assert_move(uint8_t move)
   {
-    eosio_assert((move >= 0) && (move <= 3), "incorect move value");
+    eosio_assert((move >= 0) && (move <= 5), "incorect move value");
+  }
+  static uint8_t calcWinner(uint8_t move1, uint8_t move2)
+  {
+    /*
+      1 - ROCK
+      2 - PAPER
+      3 - SCISORS
+      4 - LIZARD
+      5 - SPOCK
+    */
+    if (move1 == move2)
+    {
+      return 0;
+    }
+    if (move1 == 1)
+    {
+      return ((move2 == 3) || (move2 == 4)) ? 1 : 2;
+    }
+    if (move1 == 2)
+    {
+      return ((move2 == 1) || (move2 == 5)) ? 1 : 2;
+    }
+    if (move1 == 3)
+    {
+      return ((move2 == 2) || (move2 == 4)) ? 1 : 2;
+    }
+    if (move1 == 4)
+    {
+      return ((move2 == 2) || (move2 == 5)) ? 1 : 2;
+    }
+    if (move1 == 5)
+    {
+      return ((move2 == 1) || (move2 == 3)) ? 1 : 2;
+    }
+    return 0;
   }
   // @abi table
   struct game
@@ -42,10 +78,41 @@ public:
   typedef eosio::multi_index<N(games), game> games_index;
 
   games_index games_table;
+
+  void playGame(uint64_t gameid)
+  {
+    // play game
+    auto &game_row = games_table.get(gameid);
+    if (!(game_row.move1 && game_row.move2))
+    {
+      return;
+    }
+    auto result = calcWinner(game_row.move1, game_row.move2);
+
+    if (result == 0)
+    { // если ничья - обнуляем ходы и пусть игроки ходят заново
+      return games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+        g.move1 = 0;
+        g.move2 = 0;
+        g.commitment1 = EMPTY_CHECKSUM;
+        g.commitment2 = EMPTY_CHECKSUM;
+      });
+    }
+    auto winner = (result == 1) ? game_row.player1 : game_row.player2;
+    auto prize = game_row.bet;
+    prize.amount *= 2;
+    action(
+        permission_level{_self, N(active)},
+        N(eosio.token), N(transfer),
+        currency::transfer{_self, winner, prize, std::string("win:") + std::to_string(game_row.id)})
+        .send();
+    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой
+  }
   // @abi action
   void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
   {
     require_auth(player);
+    assert_move(move);
     auto &game_row = games_table.get(gameid);
     eosio_assert(
         !((game_row.commitment1 == EMPTY_CHECKSUM) || (game_row.commitment2 == EMPTY_CHECKSUM)),
@@ -74,6 +141,8 @@ public:
     {
       eosio_assert(false, "wrong player");
     }
+
+    playGame(gameid);
   }
   // @abi action
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
@@ -126,6 +195,10 @@ public:
   void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
   {
     require_auth(from);
+    if (from == _self) {
+      // вывод токенов - просто разрещаем (В будующем надо добавить еще логики)
+      return; 
+    }
     assert_bet(quantity);
     size_t del = memo.find(':');
     auto action = memo.substr(0, del);
