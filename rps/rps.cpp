@@ -151,43 +151,45 @@ public:
   void cancelgame(const account_name player, uint64_t gameid)
   {
     require_auth(player);
-    auto &game_row = games_table.get(gameid);
-    eosio_assert(game_row.player2 == N(), "cant cancel game with second player");
-    eosio_assert(game_row.player1 == player, "only player1 can cancel game");
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
+    eosio_assert(game_row->player2 == N(), "cant cancel game with second player");
+    eosio_assert(game_row->player1 == player, "only player1 can cancel game");
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
-        currency::transfer{_self, player, game_row.bet, "return bet"})
+        currency::transfer{_self, player, game_row->bet, "return bet"})
         .send();
-    games_table.erase(games_table.iterator_to(game_row)); // удаляем строчку с игрой
+    games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
   void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
   {
     require_auth(player);
     assert_move(move);
-    auto &game_row = games_table.get(gameid);
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(
-        !((game_row.commitment1 == EMPTY_CHECKSUM) || (game_row.commitment2 == EMPTY_CHECKSUM)),
+        !((game_row->commitment1 == EMPTY_CHECKSUM) || (game_row->commitment2 == EMPTY_CHECKSUM)),
         "both players shoud commit their hashed moves");
     // немного C++ магии
     const std::string checkstring = std::to_string(move) + secret;
     char data[checkstring.length()];
     strcpy(data, checkstring.c_str());
-    if (player == game_row.player1)
+    if (player == game_row->player1)
     {
-      eosio_assert(game_row.move1 == 0, "already revealed");
-      assert_sha256(data, sizeof(data), (const checksum256 *)&game_row.commitment1);
-      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      eosio_assert(game_row->move1 == 0, "already revealed");
+      assert_sha256(data, sizeof(data), (const checksum256 *)&game_row->commitment1);
+      games_table.modify(game_row, _self, [&](auto &g) {
         g.move1 = move;
         g.lastseen1 = eosio::time_point_sec(now());
       });
     }
-    else if (player == game_row.player2)
+    else if (player == game_row->player2)
     {
-      eosio_assert(game_row.move2 == 0, "already revealed");
-      assert_sha256(data, sizeof(data), &game_row.commitment2);
-      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      eosio_assert(game_row->move2 == 0, "already revealed");
+      assert_sha256(data, sizeof(data), &game_row->commitment2);
+      games_table.modify(game_row, _self, [&](auto &g) {
         g.move2 = move;
         g.lastseen2 = eosio::time_point_sec(now());
       });
@@ -203,19 +205,20 @@ public:
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
   {
     require_auth(player);
-    auto &game_row = games_table.get(gameid);
-    if (player == game_row.player1)
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
+    if (player == game_row->player1)
     {
-      eosio_assert(game_row.commitment1 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      eosio_assert(game_row->commitment1 == EMPTY_CHECKSUM, "already commited");
+      games_table.modify(game_row, _self, [&](auto &g) {
         g.commitment1 = commitment;
         g.lastseen1 = eosio::time_point_sec(now());
       });
     }
-    else if (player == game_row.player2)
+    else if (player == game_row->player2)
     {
-      eosio_assert(game_row.commitment2 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+      eosio_assert(game_row->commitment2 == EMPTY_CHECKSUM, "already commited");
+      games_table.modify(game_row, _self, [&](auto &g) {
         g.commitment2 = commitment;
         g.lastseen2 = eosio::time_point_sec(now());
       });
@@ -242,11 +245,12 @@ public:
   void joinGame(const account_name player2, const asset bet, uint64_t gameid)
   {
     assert_bet(bet);
-    auto &game_row = games_table.get(gameid);
-    eosio_assert(game_row.player1 != player2, "same players");
-    eosio_assert(game_row.player2 == N(), "Game alrady have second player");
-    eosio_assert(game_row.bet == bet, "bet must be same");
-    games_table.modify(games_table.iterator_to(game_row), _self, [&](auto &g) {
+    auto game_row = games_table.find(gameid);
+    eosio_assert(game_row != games_table.end(), "not found game");
+    eosio_assert(game_row->player1 != player2, "same players");
+    eosio_assert(game_row->player2 == N(), "Game alrady have second player");
+    eosio_assert(game_row->bet == bet, "bet must be same");
+    games_table.modify(game_row, _self, [&](auto &g) {
       g.player2 = player2;
       g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
     });
