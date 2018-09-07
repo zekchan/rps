@@ -70,9 +70,10 @@ public:
     checksum256 commitment2;
     uint8_t move1;
     uint8_t move2;
+    uint8_t round;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2))
+    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2)(round))
   };
 
   typedef eosio::multi_index<N(games), game> games_index;
@@ -96,6 +97,7 @@ public:
         g.move2 = 0;
         g.commitment1 = EMPTY_CHECKSUM;
         g.commitment2 = EMPTY_CHECKSUM;
+        g.round++;
       });
     }
     auto winner = (result == 1) ? game_row.player1 : game_row.player2;
@@ -177,6 +179,7 @@ public:
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
       g.bet = bet;
+      g.round = 1;
     });
   };
   // transfer action

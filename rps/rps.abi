@@ -37,6 +37,10 @@
         {
           "name": "move2",
           "type": "uint8"
+        },
+        {
+          "name": "round",
+          "type": "uint8"
         }
       ]
     },
