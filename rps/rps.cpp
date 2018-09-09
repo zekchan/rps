@@ -100,8 +100,8 @@ public:
     uint8_t winstreak;
     uint32_t score;
     account_name primary_key() const { return player; }
-    uint64_t by_score() const { return score; }
-    uint64_t by_games() const { return games; }
+    uint64_t by_score() const { return 0xffffffffffffffff - score; }
+    uint64_t by_games() const { return 0xffffffffffffffff - games; }
 
     EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score))
   };
