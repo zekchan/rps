@@ -116,7 +116,48 @@ public:
         N(eosio.token), N(transfer),
         currency::transfer{_self, winner, prize, std::string("win:") + std::to_string(game_row.id)})
         .send();
-    games_table.erase(game_row); // удаляем строчку с игрой
+
+    auto account_row = accounts_table.find(winner);
+    if (account_row == accounts_table.end())
+    {
+      accounts_table.emplace(_self, [&](account &a) {
+        a.player = winner;
+        a.games = 1;
+        a.wins = 1;
+        a.winstreak = 1;
+        a.score += a.winstreak;
+      });
+    }
+    else
+    {
+      accounts_table.modify(account_row, _self, [&](account &a) {
+        a.games++;
+        a.wins++;
+        a.winstreak++;
+        a.score += a.winstreak;
+      });
+    }
+  }
+  void handleLooser(account_name looser)
+  {
+    auto account_row = accounts_table.find(looser);
+    if (account_row == accounts_table.end())
+    {
+      accounts_table.emplace(_self, [&](account &a) {
+        a.player = looser;
+        a.games = 1;
+        a.wins = 0;
+        a.winstreak = 0;
+        a.score = 0;
+      });
+    }
+    else
+    {
+      accounts_table.modify(account_row, _self, [&](account &a) {
+        a.games++;
+        a.winstreak = 0;
+      });
+    }
   }
   void playGame(uint64_t gameid)
   {
@@ -141,7 +182,10 @@ public:
       });
     }
     auto winner = (result == 1) ? game_row->player1 : game_row->player2;
+    auto looser = (result == 2) ? game_row->player1 : game_row->player2;
     handleWinner(winner, *game_row);
+    handleLooser(looser);
+    games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
   void claimexpired(const account_name player, uint64_t gameid)
