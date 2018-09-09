@@ -100,11 +100,17 @@ public:
     uint8_t winstreak;
     uint32_t score;
     account_name primary_key() const { return player; }
+    uint64_t by_score() const { return score; }
+    uint64_t by_games() const { return games; }
 
     EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score))
   };
 
-  typedef eosio::multi_index<N(accounts), account> accounts_index;
+  typedef eosio::multi_index<N(accounts), account,
+                             indexed_by<N(score), const_mem_fun<account, uint64_t, &account::by_score>>,
+                             indexed_by<N(games), const_mem_fun<account, uint64_t, &account::by_games>>>
+      accounts_index;
+
   games_index games_table;
   accounts_index accounts_table;
   void handleWinner(account_name winner, const game &game_row)

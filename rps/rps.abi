@@ -185,10 +185,10 @@
       "name": "accounts",
       "index_type": "i64",
       "key_names": [
-        "player"
+        "player", "score", "games"
       ],
       "key_types": [
-        "name"
+        "name", "uint64", "uint64"
       ],
       "type": "account"
     }
