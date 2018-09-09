@@ -6,3 +6,9 @@ function balance() {
 function unlockwallet() {
   cleos wallet unlock -n default --password PW5J5jYhgViyJmfEAjYpVsBKQYKrYxnzLfprpRysmKG6o1oZNMbPv
 }
+
+function stats() {
+  cleos get table rps rps accounts
+}
+
+unlockwallet
