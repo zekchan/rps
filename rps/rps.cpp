@@ -14,7 +14,11 @@ class rps : public eosio::contract
 {
 public:
   using contract::contract;
-  rps(account_name self) : contract(self), games_table(self, self) {}
+  rps(account_name self) : contract(self),
+                           games_table(self, self),
+                           accounts_table(self, self)
+  {
+  }
   const static uint32_t AFK_TIME = 2 * 60; // 2 minutes
   static void assert_bet(asset bet)
   {
@@ -87,7 +91,22 @@ public:
 
   typedef eosio::multi_index<N(games), game> games_index;
 
+  // @abi table
+  struct account
+  {
+    account_name player;
+    uint32_t games;
+    uint32_t wins;
+    uint8_t winstreak;
+    uint32_t score;
+    account_name primary_key() const { return player; }
+
+    EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score))
+  };
+
+  typedef eosio::multi_index<N(accounts), account> accounts_index;
   games_index games_table;
+  accounts_index accounts_table;
   void handleWinner(account_name winner, const game &game_row)
   {
     auto prize = game_row.bet;

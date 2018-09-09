@@ -53,6 +53,32 @@
       ]
     },
     {
+      "name": "account",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        },
+        {
+          "name": "games",
+          "type": "uint32"
+        },
+        {
+          "name": "wins",
+          "type": "uint32"
+        },
+        {
+          "name": "winstreak",
+          "type": "uint8"
+        },
+        {
+          "name": "score",
+          "type": "uint32"
+        }
+      ]
+    },
+    {
       "name": "commitmove",
       "base": "",
       "fields": [
@@ -154,6 +180,17 @@
         "uint64"
       ],
       "type": "game"
+    },
+    {
+      "name": "accounts",
+      "index_type": "i64",
+      "key_names": [
+        "player"
+      ],
+      "key_types": [
+        "name"
+      ],
+      "type": "account"
     }
   ],
   "ricardian_clauses": [],
