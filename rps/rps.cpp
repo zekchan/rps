@@ -113,7 +113,7 @@ public:
 
   games_index games_table;
   accounts_index accounts_table;
-  void handleWinner(account_name winner, const game &game_row)
+  void handleWinner(account_name winner, const game &game_row, account_name payer)
   {
     auto prize = game_row.bet;
     prize.amount *= 2;
@@ -126,7 +126,7 @@ public:
     auto account_row = accounts_table.find(winner);
     if (account_row == accounts_table.end())
     {
-      accounts_table.emplace(_self, [&](account &a) {
+      accounts_table.emplace(payer, [&](account &a) {
         a.player = winner;
         a.games = 1;
         a.wins = 1;
@@ -136,7 +136,7 @@ public:
     }
     else
     {
-      accounts_table.modify(account_row, _self, [&](account &a) {
+      accounts_table.modify(account_row, payer, [&](account &a) {
         a.games++;
         a.wins++;
         a.winstreak++;
@@ -144,12 +144,12 @@ public:
       });
     }
   }
-  void handleLooser(account_name looser)
+  void handleLooser(account_name looser, account_name payer)
   {
     auto account_row = accounts_table.find(looser);
     if (account_row == accounts_table.end())
     {
-      accounts_table.emplace(_self, [&](account &a) {
+      accounts_table.emplace(payer, [&](account &a) {
         a.player = looser;
         a.games = 1;
         a.wins = 0;
@@ -159,13 +159,13 @@ public:
     }
     else
     {
-      accounts_table.modify(account_row, _self, [&](account &a) {
+      accounts_table.modify(account_row, payer, [&](account &a) {
         a.games++;
         a.winstreak = 0;
       });
     }
   }
-  void playGame(uint64_t gameid)
+  void playGame(uint64_t gameid, account_name payer)
   {
     // play game
     auto game_row = games_table.find(gameid);
@@ -178,7 +178,7 @@ public:
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
-      return games_table.modify(game_row, _self, [&](auto &g) {
+      return games_table.modify(game_row, payer, [&](auto &g) {
         g.move1 = 0;
         g.move2 = 0;
         g.commitment1 = EMPTY_CHECKSUM;
@@ -189,8 +189,8 @@ public:
     }
     auto winner = (result == 1) ? game_row->player1 : game_row->player2;
     auto looser = (result == 2) ? game_row->player1 : game_row->player2;
-    handleWinner(winner, *game_row);
-    handleLooser(looser);
+    handleWinner(winner, *game_row, payer);
+    handleLooser(looser, payer);
     games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
@@ -204,12 +204,12 @@ public:
     if (player == game_row->player1)
     {
       eosio_assert(expired(game_row->lastseen2), "player not afk");
-      handleWinner(player, *game_row);
+      handleWinner(player, *game_row, player);
     }
     else if (player == game_row->player2)
     {
       eosio_assert(expired(game_row->lastseen1), "player not afk");
-      handleWinner(player, *game_row);
+      handleWinner(player, *game_row, player);
     }
     else
     {
@@ -249,7 +249,7 @@ public:
     {
       eosio_assert(game_row->move1 == 0, "already revealed");
       assert_sha256(data, sizeof(data), (const checksum256 *)&game_row->commitment1);
-      games_table.modify(game_row, _self, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.move1 = move;
         g.lastseen1 = eosio::time_point_sec(now());
       });
@@ -258,7 +258,7 @@ public:
     {
       eosio_assert(game_row->move2 == 0, "already revealed");
       assert_sha256(data, sizeof(data), &game_row->commitment2);
-      games_table.modify(game_row, _self, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.move2 = move;
         g.lastseen2 = eosio::time_point_sec(now());
       });
@@ -268,7 +268,7 @@ public:
       eosio_assert(false, "wrong player");
     }
 
-    playGame(gameid);
+    playGame(gameid, player);
   }
   // @abi action
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
@@ -279,7 +279,7 @@ public:
     if (player == game_row->player1)
     {
       eosio_assert(game_row->commitment1 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, _self, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.commitment1 = commitment;
         g.lastseen1 = eosio::time_point_sec(now());
       });
@@ -287,7 +287,7 @@ public:
     else if (player == game_row->player2)
     {
       eosio_assert(game_row->commitment2 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, _self, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.commitment2 = commitment;
         g.lastseen2 = eosio::time_point_sec(now());
       });
