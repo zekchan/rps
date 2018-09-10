@@ -47,6 +47,7 @@ public:
     uint64_t id;
     account_name player1;
     account_name player2;
+    // TODO: store only amount of bet for using less RAM
     asset bet;
     checksum256 commitment1;
     checksum256 commitment2;
@@ -56,11 +57,14 @@ public:
     eosio::time_point_sec lastseen2;
     uint8_t round;
     uint64_t primary_key() const { return id; };
+    uint64_t by_bet_amount() const { return bet.amount; };
 
     EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(lastseen1)(lastseen2)(round))
   };
 
-  typedef eosio::multi_index<N(games), game> games_index;
+  typedef eosio::multi_index<N(games), game,
+                             indexed_by<N(bet), const_mem_fun<game, uint64_t, &game::by_bet_amount>>>
+      games_index;
 
   // @abi table
   struct account

@@ -174,10 +174,10 @@
       "name": "games",
       "index_type": "i64",
       "key_names": [
-        "id"
+        "id", "bet"
       ],
       "key_types": [
-        "uint64"
+        "uint64", "uint64"
       ],
       "type": "game"
     },
