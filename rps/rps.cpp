@@ -4,6 +4,7 @@
 #include <eosiolib/currency.hpp>
 #include <eosiolib/time.hpp>
 #include <string>
+#include "gamerules.cpp"
 
 using namespace eosio;
 const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
@@ -28,78 +29,10 @@ public:
     eosio_assert(bet.is_valid(), "Invalid token transfer");
     eosio_assert(bet.amount > 0, "Quantity must be positive");
   }
-  static void assert_fight(std::string fight)
-  {
-    eosio_assert(fight.length() == MOVES_IN_FIGHT, "need three moves");
-    for (char &c : fight)
-    {
-      eosio_assert((c >= '1') && (c <= '5'), "incorect move value");
-    }
-  }
+
   static bool expired(eosio::time_point_sec seen)
   {
     return eosio::time_point_sec(now() - AFK_TIME) > seen;
-  }
-
-  static uint8_t calcRoundWinner(char move1, char move2)
-  {
-    /*
-      1 - ROCK
-      2 - PAPER
-      3 - SCISORS
-      4 - LIZARD
-      5 - SPOCK
-    */
-    if (move1 == move2)
-    {
-      return 0;
-    }
-    if (move1 == '1')
-    {
-      return ((move2 == '3') || (move2 == '4')) ? 1 : 2;
-    }
-    if (move1 == '2')
-    {
-      return ((move2 == '1') || (move2 == '5')) ? 1 : 2;
-    }
-    if (move1 == '3')
-    {
-      return ((move2 == '2') || (move2 == '4')) ? 1 : 2;
-    }
-    if (move1 == '4')
-    {
-      return ((move2 == '2') || (move2 == '5')) ? 1 : 2;
-    }
-    if (move1 == '5')
-    {
-      return ((move2 == '1') || (move2 == '3')) ? 1 : 2;
-    }
-    return 0;
-  }
-  static uint8_t calcWinner(std::string fight1, std::string fight2)
-  {
-    uint8_t points1 = 0, points2 = 0;
-    for (std::string::size_type i = 0; i < MOVES_IN_FIGHT; ++i)
-    {
-      switch (calcRoundWinner(fight1[i], fight2[i]))
-      {
-      case 1:
-        points1++;
-        break;
-      case 2:
-        points2++;
-        break;
-      }
-    }
-    if (points1 >= NEED_TO_WIN)
-    {
-      return 1;
-    }
-    if (points2 >= NEED_TO_WIN)
-    {
-      return 2;
-    }
-    return 0;
   }
 
   // @abi table
@@ -206,7 +139,7 @@ public:
     {
       return;
     }
-    auto result = calcWinner(game_row->fight1, game_row->fight2);
+    auto result = gamerules::calcWinner(game_row->fight1, game_row->fight2);
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
@@ -269,7 +202,7 @@ public:
   void revealmove(const account_name player, uint64_t gameid, std::string fight, std::string secret)
   {
     require_auth(player);
-    assert_fight(fight);
+    gamerules::assert_fight(fight);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(
