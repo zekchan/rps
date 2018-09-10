@@ -46,5 +46,5 @@ export async function deployContract() {
   })
   const contract = await eos.contract(accountName)
 
-  return await eos.contract(accountName);
+  return { contract, name: accountName };
 }

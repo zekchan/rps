@@ -27,7 +27,7 @@
           "type": "checksum256"
         },
         {
-          "name": "commitment1",
+          "name": "commitment2",
           "type": "checksum256"
         },
         {
