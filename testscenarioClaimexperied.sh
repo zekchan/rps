@@ -16,9 +16,9 @@ cleos get table rps rps games
 echo "WAILT 3 seconds"
 sleep 3
 cleos get table rps rps games
-# bob - move = 1; secret = "asdasdasd"; sha256(move + secret) = "971bffc5e741ecbc9beef4a8e00c7dd9aa7b8c8af6ffc5198bc2c52f3f1e455b"
+# bob - move = "123"; secret = "asdasdasd"; sha256(move + secret) = "2961e548627b4aeb5d247afa2a1d49f3101d8e5154e1ddfc67202768ecca41b3"
 echo "BOB COMITTED MOVE"
-cleos push action rps commitmove '["bob", 0, "971bffc5e741ecbc9beef4a8e00c7dd9aa7b8c8af6ffc5198bc2c52f3f1e455b"]' -p bob
+cleos push action rps commitmove '["bob", 0, "2961e548627b4aeb5d247afa2a1d49f3101d8e5154e1ddfc67202768ecca41b3"]' -p bob
 cleos get table rps rps games
 echo "WAIT 2 MINUTES and 2 seconds..."
 sleep 122

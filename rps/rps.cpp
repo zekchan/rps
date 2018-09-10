@@ -10,6 +10,8 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0};
+const uint8_t MOVES_IN_FIGHT = 3;
+const uint8_t NEED_TO_WIN = 2;
 class rps : public eosio::contract
 {
 public:
@@ -26,16 +28,20 @@ public:
     eosio_assert(bet.is_valid(), "Invalid token transfer");
     eosio_assert(bet.amount > 0, "Quantity must be positive");
   }
-  static void assert_move(uint8_t move)
+  static void assert_fight(std::string fight)
   {
-    eosio_assert((move >= 0) && (move <= 5), "incorect move value");
+    eosio_assert(fight.length() == MOVES_IN_FIGHT, "need three moves");
+    for (char &c : fight)
+    {
+      eosio_assert((c >= '1') && (c <= '5'), "incorect move value");
+    }
   }
   static bool expired(eosio::time_point_sec seen)
   {
     return eosio::time_point_sec(now() - AFK_TIME) > seen;
   }
 
-  static uint8_t calcWinner(uint8_t move1, uint8_t move2)
+  static uint8_t calcRoundWinner(char move1, char move2)
   {
     /*
       1 - ROCK
@@ -48,28 +54,54 @@ public:
     {
       return 0;
     }
-    if (move1 == 1)
+    if (move1 == '1')
     {
-      return ((move2 == 3) || (move2 == 4)) ? 1 : 2;
+      return ((move2 == '3') || (move2 == '4')) ? 1 : 2;
     }
-    if (move1 == 2)
+    if (move1 == '2')
     {
-      return ((move2 == 1) || (move2 == 5)) ? 1 : 2;
+      return ((move2 == '1') || (move2 == '5')) ? 1 : 2;
     }
-    if (move1 == 3)
+    if (move1 == '3')
     {
-      return ((move2 == 2) || (move2 == 4)) ? 1 : 2;
+      return ((move2 == '2') || (move2 == '4')) ? 1 : 2;
     }
-    if (move1 == 4)
+    if (move1 == '4')
     {
-      return ((move2 == 2) || (move2 == 5)) ? 1 : 2;
+      return ((move2 == '2') || (move2 == '5')) ? 1 : 2;
     }
-    if (move1 == 5)
+    if (move1 == '5')
     {
-      return ((move2 == 1) || (move2 == 3)) ? 1 : 2;
+      return ((move2 == '1') || (move2 == '3')) ? 1 : 2;
     }
     return 0;
   }
+  static uint8_t calcWinner(std::string fight1, std::string fight2)
+  {
+    uint8_t points1 = 0, points2 = 0;
+    for (std::string::size_type i = 0; i < MOVES_IN_FIGHT; ++i)
+    {
+      switch (calcRoundWinner(fight1[i], fight2[i]))
+      {
+      case 1:
+        points1++;
+        break;
+      case 2:
+        points2++;
+        break;
+      }
+    }
+    if (points1 >= NEED_TO_WIN)
+    {
+      return 1;
+    }
+    if (points2 >= NEED_TO_WIN)
+    {
+      return 2;
+    }
+    return 0;
+  }
+
   // @abi table
   struct game
   {
@@ -79,14 +111,14 @@ public:
     asset bet;
     checksum256 commitment1;
     checksum256 commitment2;
-    uint8_t move1;
-    uint8_t move2;
+    std::string fight1;
+    std::string fight2;
     eosio::time_point_sec lastseen1;
     eosio::time_point_sec lastseen2;
     uint8_t round;
     uint64_t primary_key() const { return id; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(move1)(move2)(lastseen1)(lastseen2)(round))
+    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(lastseen1)(lastseen2)(round))
   };
 
   typedef eosio::multi_index<N(games), game> games_index;
@@ -170,17 +202,17 @@ public:
     // play game
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    if (!(game_row->move1 && game_row->move2))
+    if ((game_row->fight1 == "") || (game_row->fight2 == ""))
     {
       return;
     }
-    auto result = calcWinner(game_row->move1, game_row->move2);
+    auto result = calcWinner(game_row->fight1, game_row->fight2);
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
       return games_table.modify(game_row, payer, [&](auto &g) {
-        g.move1 = 0;
-        g.move2 = 0;
+        g.fight1 = "";
+        g.fight2 = "";
         g.commitment1 = EMPTY_CHECKSUM;
         g.commitment2 = EMPTY_CHECKSUM;
         g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now());
@@ -205,11 +237,13 @@ public:
     {
       eosio_assert(expired(game_row->lastseen2), "player not afk");
       handleWinner(player, *game_row, player);
+      games_table.erase(game_row); // удаляем строчку с игрой
     }
     else if (player == game_row->player2)
     {
       eosio_assert(expired(game_row->lastseen1), "player not afk");
       handleWinner(player, *game_row, player);
+      games_table.erase(game_row); // удаляем строчку с игрой
     }
     else
     {
@@ -232,34 +266,34 @@ public:
     games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
-  void revealmove(const account_name player, uint64_t gameid, uint8_t move, std::string secret)
+  void revealmove(const account_name player, uint64_t gameid, std::string fight, std::string secret)
   {
     require_auth(player);
-    assert_move(move);
+    assert_fight(fight);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(
         !((game_row->commitment1 == EMPTY_CHECKSUM) || (game_row->commitment2 == EMPTY_CHECKSUM)),
         "both players shoud commit their hashed moves");
     // немного C++ магии
-    const std::string checkstring = std::to_string(move) + secret;
+    const std::string checkstring = fight + secret;
     char data[checkstring.length()];
     strcpy(data, checkstring.c_str());
     if (player == game_row->player1)
     {
-      eosio_assert(game_row->move1 == 0, "already revealed");
+      eosio_assert(game_row->fight1 == "", "already revealed");
       assert_sha256(data, sizeof(data), (const checksum256 *)&game_row->commitment1);
       games_table.modify(game_row, player, [&](auto &g) {
-        g.move1 = move;
+        g.fight1 = fight;
         g.lastseen1 = eosio::time_point_sec(now());
       });
     }
     else if (player == game_row->player2)
     {
-      eosio_assert(game_row->move2 == 0, "already revealed");
+      eosio_assert(game_row->fight2 == "", "already revealed");
       assert_sha256(data, sizeof(data), &game_row->commitment2);
       games_table.modify(game_row, player, [&](auto &g) {
-        g.move2 = move;
+        g.fight2 = fight;
         g.lastseen2 = eosio::time_point_sec(now());
       });
     }

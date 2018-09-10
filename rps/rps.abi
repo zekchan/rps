@@ -31,12 +31,12 @@
           "type": "checksum256"
         },
         {
-          "name": "move1",
-          "type": "uint8"
+          "name": "fight1",
+          "type": "string"
         },
         {
-          "name": "move2",
-          "type": "uint8"
+          "name": "fight2",
+          "type": "string"
         },
         {
           "name": "lastseen1",
@@ -109,8 +109,8 @@
           "type": "uint64"
         },
         {
-          "name": "move",
-          "type": "uint8"
+          "name": "fight",
+          "type": "string"
         },
         {
           "name": "secret",

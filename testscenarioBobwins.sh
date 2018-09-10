@@ -15,22 +15,22 @@ balance bob
 balance alice
 balance rps
 sleep 0.4
-# bob - move = 1; secret = "asdasdasd"; sha256(move + secret) = "971bffc5e741ecbc9beef4a8e00c7dd9aa7b8c8af6ffc5198bc2c52f3f1e455b"
+# bob - move = "111"; secret = "asdasdasd"; sha256(move + secret) = "b0316749a5ea496b29631515fa3ec9c13554406f238ff609f666fa7f86fdf10b"
 echo "BOB COMITTED MOVE"
-cleos push action rps commitmove '["bob", 0, "971bffc5e741ecbc9beef4a8e00c7dd9aa7b8c8af6ffc5198bc2c52f3f1e455b"]' -p bob
+cleos push action rps commitmove '["bob", 0, "b0316749a5ea496b29631515fa3ec9c13554406f238ff609f666fa7f86fdf10b"]' -p bob
 cleos get table rps rps games
 sleep 0.4
-# alice - move = 4; secret = "sdfsskdjf"; sha256(move + secret) = "deb6182bae9b88a6b6bf11a38c10a9c97ec71886e96f3b4a1feb1ffc09a87616"
+# alice - move = "424"; secret = "sdfsskdjf"; sha256(move + secret) = "311ef1fa21b4c98a8e5ea7fb755a5817a6242ac0a755c49fc05850942ddeccd8"
 echo "ALISE COMITTED MOVE"
-cleos push action rps commitmove '["alice", 0, "deb6182bae9b88a6b6bf11a38c10a9c97ec71886e96f3b4a1feb1ffc09a87616"]' -p alice
+cleos push action rps commitmove '["alice", 0, "311ef1fa21b4c98a8e5ea7fb755a5817a6242ac0a755c49fc05850942ddeccd8"]' -p alice
 cleos get table rps rps games
 sleep 0.4
 echo "BOB REVEALED HIS MOVE"
-cleos push action rps revealmove '["bob", 0, 1, "asdasdasd"]' -p bob
+cleos push action rps revealmove '["bob", 0, "111", "asdasdasd"]' -p bob
 cleos get table rps rps games
 sleep 0.4
 echo "ALICE REVEALED HER MOVE"
-cleos push action rps revealmove '["alice", 0, 4, "sdfsskdjf"]' -p alice
+cleos push action rps revealmove '["alice", 0, "424", "sdfsskdjf"]' -p alice
 cleos get table rps rps games
 balance bob
 balance alice
