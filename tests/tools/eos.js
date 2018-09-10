@@ -43,6 +43,20 @@ export async function deployContract() {
   await eos.transaction(tr => {
     tr.setcode(accountName, 0, 0, wasm)
     tr.setabi(accountName, JSON.parse(abi))
+    tr.updateauth({
+      account: accountName,
+      permission: `active`,
+      parent: 'owner',
+      auth: {
+        "threshold": 1,
+        "keys": [{ "key": "EOS79NjptwuiygNmWmGLXTHoK4eUsZZxWgprQZ3rgDdJvkbLFTkSA", "weight": 1 }],
+        "accounts": [{ "permission": { "actor": accountName, "permission": "eosio.code" }, "weight": 1 }]
+      }
+    },
+      {
+        authorization: `${accountName}@owner`
+      }
+    );
   })
   const contract = await eos.contract(accountName)
 
