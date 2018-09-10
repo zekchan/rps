@@ -12,6 +12,8 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
+uint8_t const TAX_NUMERATOR = 2;
+uint8_t const TAX_DENOMINATOR = 100;
 class rps : public eosio::contract
 {
 public:
@@ -92,6 +94,8 @@ public:
   {
     auto prize = game_row.bet;
     prize.amount *= 2;
+    uint64_t tax = prize.amount * TAX_NUMERATOR / TAX_DENOMINATOR;
+    prize.amount -= tax;
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
@@ -284,7 +288,6 @@ public:
       Итерируемся по ним и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
     */
 
-    // последняя игра с нужной ставкой (считаем что все новые игры сновятся последжними в индексе (Это еще надо проверить))
     auto lower_row = games_table_player2.lower_bound(_self);
     auto upper_row = games_table_player2.upper_bound(_self);
     if (lower_row != games_table_player2.end())
