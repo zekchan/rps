@@ -11,8 +11,7 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0};
-const uint8_t MOVES_IN_FIGHT = 3;
-const uint8_t NEED_TO_WIN = 2;
+uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
 class rps : public eosio::contract
 {
 public:
@@ -27,7 +26,14 @@ public:
   {
     eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
     eosio_assert(bet.is_valid(), "Invalid token transfer");
-    eosio_assert(bet.amount > 0, "Quantity must be positive");
+    for (uint64_t allowed_amount : AVAILEBLE_AMOUNTS)
+    {
+      if (allowed_amount == bet.amount)
+      {
+        return;
+      }
+    }
+    eosio_assert(false, "wrong bet");
   }
 
   static bool expired(eosio::time_point_sec seen)
