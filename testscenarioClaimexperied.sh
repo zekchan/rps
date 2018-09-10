@@ -7,11 +7,11 @@ balance alise
 balance bob
 balance rps
 echo "BOB CREATED GAME"
-cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", "create:"]' -p bob
+cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", ""]' -p bob
 cleos get table rps rps games
 sleep 0.4
 echo "ALICE CONNECTED TO GAME"
-cleos push action eosio.token transfer '["alice", "rps", "1.0000 EOS", "join:0"]' -p alice
+cleos push action eosio.token transfer '["alice", "rps", "1.0000 EOS", ""]' -p alice
 cleos get table rps rps games
 echo "WAILT 3 seconds"
 sleep 3

@@ -57,13 +57,13 @@ public:
     eosio::time_point_sec lastseen2;
     uint8_t round;
     uint64_t primary_key() const { return id; };
-    uint64_t by_bet_amount() const { return bet.amount; };
+    account_name by_player2() const { return player2; };
 
     EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(lastseen1)(lastseen2)(round))
   };
 
   typedef eosio::multi_index<N(games), game,
-                             indexed_by<N(bet), const_mem_fun<game, uint64_t, &game::by_bet_amount>>>
+                             indexed_by<N(player2), const_mem_fun<game, account_name, &game::by_player2>>>
       games_index;
 
   // @abi table
@@ -95,7 +95,7 @@ public:
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
-        currency::transfer{_self, winner, prize, std::string("win:") + std::to_string(game_row.id)})
+        currency::transfer{_self, winner, prize, ""})
         .send();
 
     auto account_row = accounts_table.find(winner);
@@ -174,7 +174,7 @@ public:
     require_auth(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player2 != N(), "player2 should connect to game");
+    eosio_assert(game_row->player2 != _self, "player2 should connect to game");
 
     if (player == game_row->player1)
     {
@@ -199,7 +199,7 @@ public:
     require_auth(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player2 == N(), "cant cancel game with second player");
+    eosio_assert(game_row->player2 == _self, "cant cancel game with second player");
     eosio_assert(game_row->player1 == player, "only player1 can cancel game");
     action(
         permission_level{_self, N(active)},
@@ -275,11 +275,49 @@ public:
     }
   }
   // transfer action
-  void startGame(const account_name player1, const asset bet)
+  void startGame(const account_name player, const asset bet)
   {
+    auto games_table_player2 = games_table.get_index<N(player2)>(); // Смотрим через by_player2 индекс
+    /*
+      Находим первую и последню игру, с пустым player2
+      Таких игр может быть максимум количество возможных ставок (Мало)
+      Итерируемся по ним и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
+    */
+
+    // последняя игра с нужной ставкой (считаем что все новые игры сновятся последжними в индексе (Это еще надо проверить))
+    auto lower_row = games_table_player2.lower_bound(_self);
+    auto upper_row = games_table_player2.upper_bound(_self);
+    if (lower_row != games_table_player2.end())
+    {
+      auto itr = lower_row;
+      while (itr != upper_row)
+      {
+        if ((itr->player1 != player) && (itr->bet == bet))
+        {
+          // нашли открытую игру с нужной ставкой
+          games_table_player2.modify(itr, _self, [&](auto &g) {
+            g.player2 = player;
+            g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
+          });
+          return;
+        }
+        itr++;
+      }
+      // чекаем upper_row отдельно
+      if ((upper_row != games_table_player2.end()) && (upper_row->bet == bet))
+      {
+        // нашли открытую игру с нужной ставкой
+        games_table_player2.modify(upper_row, _self, [&](auto &g) {
+          g.player2 = player;
+          g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
+        });
+        return;
+      }
+    }
     games_table.emplace(_self, [&](game &g) {
       g.id = games_table.available_primary_key();
-      g.player1 = player1;
+      g.player1 = player;
+      g.player2 = _self;
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
       g.lastseen1 = g.lastseen2 = eosio::time_point_sec(0);
@@ -287,20 +325,6 @@ public:
       g.round = 1;
     });
   };
-  // transfer action
-  void joinGame(const account_name player2, const asset bet, uint64_t gameid)
-  {
-    assert_bet(bet);
-    auto game_row = games_table.find(gameid);
-    eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player1 != player2, "same players");
-    eosio_assert(game_row->player2 == N(), "Game alrady have second player");
-    eosio_assert(game_row->bet == bet, "bet must be same");
-    games_table.modify(game_row, _self, [&](auto &g) {
-      g.player2 = player2;
-      g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
-    });
-  }
   // eosio.token transfer handler
   void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
   {
@@ -311,21 +335,7 @@ public:
       return;
     }
     assert_bet(quantity);
-    size_t del = memo.find(':');
-    auto action = memo.substr(0, del);
-    if (action == "create")
-    {
-      startGame(from, quantity);
-    }
-    else if (action == "join")
-    {
-      uint64_t gameId = std::stoull(memo.substr(del + 1));
-      joinGame(from, quantity, gameId);
-    }
-    else
-    {
-      eosio_assert(false, "wrong cmd");
-    }
+    startGame(from, quantity);
   }
 };
 

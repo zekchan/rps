@@ -8,7 +8,7 @@ sleep 0.4
 balance bob
 balance rps
 echo "BOB CREATED GAME"
-cleos push action eosio.token transfer '["bob", "rps", "5.0000 EOS", "create:"]' -p bob
+cleos push action eosio.token transfer '["bob", "rps", "5.0000 EOS", ""]' -p bob
 cleos get table rps rps games
 balance bob
 balance rps

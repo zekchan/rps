@@ -5,11 +5,11 @@ source ./helpers.sh
 echo "*****************ILYA WINS TEST *****************"
 sleep 0.4
 echo "BOB CREATED GAME"
-cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", "create:"]' -p bob
+cleos push action eosio.token transfer '["bob", "rps", "1.0000 EOS", ""]' -p bob
 cleos get table rps rps games
 sleep 0.4
 echo "ILYA CONNECTED TO GAME"
-cleos push action eosio.token transfer '["ilya", "rps", "1.0000 EOS", "join:0"]' -p ilya
+cleos push action eosio.token transfer '["ilya", "rps", "1.0000 EOS", ""]' -p ilya
 cleos get table rps rps games
 balance bob
 balance ilya
