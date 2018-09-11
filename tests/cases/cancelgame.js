@@ -1,4 +1,4 @@
-import eos, { deployContract, getPlayer } from "../tools/eos";
+import { deployContract, getPlayer, cleos } from "../tools/eos";
 import { gamesTable } from "../tools/helpers";
 jest.setTimeout(99999999);
 
@@ -8,7 +8,7 @@ describe('Game cancel', () => {
     ([contract, player1, player2] = await Promise.all([deployContract(), getPlayer(), getPlayer()]))
   })
   test('player can cancel game if no second player', async () => {
-    await eos.transfer(player1, contract, '1.0000 EOS', '')
+    await cleos(`push action eosio.token transfer '[ "${player1}","${contract}", "1.0000 EOS", "" ]' -p ${player1}`)
     expect(await gamesTable(contract)).toEqual(
       expect.arrayContaining([
         {
@@ -26,21 +26,8 @@ describe('Game cancel', () => {
         }
       ])
     )
-    await eos.transaction(
-      {
-        actions: [
-          {
-            account: contract,
-            name: 'cancelgame',
-            authorization: [{
-              actor: player1,
-              permission: 'active'
-            }],
-            data: { player: player1, gameid: 0 }
-          }
-        ]
-      }
-    )
+
+    await cleos(`push action ${contract} cancelgame '["${player1}", 0]' -p ${player1}`)
     expect(await gamesTable(contract)).toEqual([])
   })
   test('any player cant cancel game ', async () => {
@@ -59,23 +46,9 @@ describe('Game cancel', () => {
         round: 1
       }
     ]);
-    await eos.transfer(player1, contract, '2.0000 EOS', '')
+    await cleos(`push action eosio.token transfer '[ "${player1}","${contract}", "2.0000 EOS", "" ]' -p ${player1}`)
     try {
-      await eos.transaction(
-        {
-          actions: [
-            {
-              account: contract,
-              name: 'cancelgame',
-              authorization: [{
-                actor: 'alice',
-                permission: 'active'
-              }],
-              data: { player: player1, gameid: 0 }
-            }
-          ]
-        }
-      )
+      await cleos(`push action ${contract} cancelgame '["${player1}", 0]' -p ${alice}`)
       expect(true).toBe(false);
     } catch (e) {
       expect(await gamesTable(contract)).toEqual(
@@ -83,21 +56,7 @@ describe('Game cancel', () => {
       )
     }
     try {
-      await eos.transaction(
-        {
-          actions: [
-            {
-              account: contract,
-              name: 'cancelgame',
-              authorization: [{
-                actor: 'alice',
-                permission: 'active'
-              }],
-              data: { player: 'alice', gameid: 0 }
-            }
-          ]
-        }
-      )
+      await cleos(`push action ${contract} cancelgame '["${alice}", 0]' -p ${alice}`)
       expect(true).toBe(false);
     } catch (e) {
       expect(await gamesTable(contract)).toEqual(

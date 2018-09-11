@@ -1,4 +1,4 @@
-import eos, { deployContract, getPlayer } from './eos'
+import eos, { deployContract, getPlayer, cleos } from './eos'
 import randomstring from 'randomstring';
 // think twice about using this lib in production
 import sha256 from 'sha256'
@@ -14,7 +14,7 @@ export async function accountsTable(account) {
 }
 
 export async function playgame(player1, player2, fight1, fight2, name, checkbalance = true) {
-  await eos.transfer(player1, name, '1.0000 EOS', '')
+  await cleos(`push action eosio.token transfer '[ "${player1}","${name}", "1.0000 EOS", "" ]' -p ${player1}`)
   const gameBase = {
     id: 0,
     player1,
@@ -32,7 +32,7 @@ export async function playgame(player1, player2, fight1, fight2, name, checkbala
     gameBase
   ]);
   checkbalance && expect(await balance(name)).toEqual('1.0000 EOS')
-  await eos.transfer(player2, name, '1.0000 EOS', '')
+  await cleos(`push action eosio.token transfer '[ "${player2}","${name}", "1.0000 EOS", "" ]' -p ${player2}`)
   gameBase.player2 = player2
   expect(await gamesTable(name)).toEqual([
     gameBase
@@ -43,82 +43,27 @@ export async function playgame(player1, player2, fight1, fight2, name, checkbala
   const committment1 = sha256(fight1 + secret1)
   const secret2 = randomstring.generate();
   const committment2 = sha256(fight2 + secret2)
-  await eos.transaction(
-    {
-      actions: [
-        {
-          account: name,
-          name: 'commitmove',
-          authorization: [{
-            actor: player1,
-            permission: 'active'
-          }],
-          data: { player: player1, gameid: 0, commitment: committment1 }
-        }
-      ]
-    }
-  )
+  await cleos(`push action ${name} commitmove '["${player1}", 0, "${committment1}"]' -p ${player1}`)
   gameBase.commitment1 = committment1
   expect(await gamesTable(name)).toEqual([
     gameBase
   ]);
 
-  await eos.transaction(
-    {
-      actions: [
-        {
-          account: name,
-          name: 'commitmove',
-          authorization: [{
-            actor: player2,
-            permission: 'active'
-          }],
-          data: { player: player2, gameid: 0, commitment: committment2 }
-        }
-      ]
-    }
-  )
+  await cleos(`push action ${name} commitmove '["${player2}", 0, "${committment2}"]' -p ${player2}`)
   gameBase.commitment2 = committment2
 
 
   expect(await gamesTable(name)).toEqual([
     gameBase
   ]);
-  await eos.transaction(
-    {
-      actions: [
-        {
-          account: name,
-          name: 'revealmove',
-          authorization: [{
-            actor: player1,
-            permission: 'active'
-          }],
-          data: { player: player1, gameid: 0, fight: fight1, secret: secret1 }
-        }
-      ]
-    }
-  )
+  await cleos(`push action ${name} revealmove '["${player1}", 0, "${fight1}", "${secret1}"]' -p ${player1}`)
 
   gameBase.fight1 = fight1
   expect(await gamesTable(name)).toEqual([
     gameBase
   ]);
-  await eos.transaction(
-    {
-      actions: [
-        {
-          account: name,
-          name: 'revealmove',
-          authorization: [{
-            actor: player2,
-            permission: 'active'
-          }],
-          data: { player: player2, gameid: 0, fight: fight2, secret: secret2 }
-        }
-      ]
-    }
-  )
+
+  await cleos(`push action ${name} revealmove '["${player2}", 0, "${fight2}", "${secret2}"]' -p ${player2}`)
   expect(await gamesTable(name)).toEqual([]);
 }
 
