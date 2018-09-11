@@ -136,7 +136,8 @@ export async function playCombination(fight1, fight2, winner = 1) {
       {
         player: winplayer,
         games: 1,
-        winstreal: 1,
+        winstreak: 1,
+        wins: 1,
         score: 1
       }
     ])
@@ -146,7 +147,8 @@ export async function playCombination(fight1, fight2, winner = 1) {
       {
         player: looseplayer,
         games: 1,
-        winstreal: 0,
+        wins: 0,
+        winstreak: 0,
         score: 0
       }
     ])

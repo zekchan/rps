@@ -1,4 +1,3 @@
-import { playgame, accountsTable } from "../tools/helpers";
 import eos, { deployContract, getPlayer } from "../tools/eos";
 jest.setTimeout(99999999);
 
