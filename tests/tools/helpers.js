@@ -12,7 +12,9 @@ export async function gamesTable(account) {
 export async function accountsTable(account) {
   return (await eos.getTableRows(true, account, account, 'accounts')).rows
 }
-
+export async function sleep(delay) {
+  return new Promise(resolve => setTimeout(resolve, delay))
+}
 export async function playgame(player1, player2, fight1, fight2, name, checkbalance = true) {
   await cleos(`push action eosio.token transfer '[ "${player1}","${name}", "1.0000 EOS", "" ]' -p ${player1}`)
   const gameBase = {
@@ -64,6 +66,7 @@ export async function playgame(player1, player2, fight1, fight2, name, checkbala
   ]);
 
   await cleos(`push action ${name} revealmove '["${player2}", 0, "${fight2}", "${secret2}"]' -p ${player2}`)
+
   expect(await gamesTable(name)).toEqual([]);
 }
 

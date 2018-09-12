@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "jest"
+    "test": "jest -w 2"
   },
   "dependencies": {
     "@babel/core": "^7.0.0",
