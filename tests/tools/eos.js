@@ -13,7 +13,7 @@ export default eos;
 
 
 function getAccountName() {
-  return randomize('a', 12, { chars: 'jonschlinkert' });
+  return randomize('a', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz' });
 }
 const exec = script => new Promise((resolve, reject) => {
   child_process.exec(script, err => {
@@ -85,6 +85,7 @@ export async function deployContract() {
   ])
   return accountName;
 }
+
 export async function getPlayer() {
   const accountName = getAccountName();
   await cleos(`create account eosio ${accountName} ${ALICE_PUBLIC} ${ALICE_PUBLIC}`)
