@@ -60,11 +60,13 @@ public:
     uint8_t round;
     uint64_t primary_key() const { return id; };
     account_name by_player2() const { return player2; };
+    account_name by_player1() const { return player1; };
 
     EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(lastseen1)(lastseen2)(round))
   };
 
   typedef eosio::multi_index<N(games), game,
+                             indexed_by<N(player1), const_mem_fun<game, account_name, &game::by_player1>>,
                              indexed_by<N(player2), const_mem_fun<game, account_name, &game::by_player2>>>
       games_index;
 

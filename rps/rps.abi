@@ -174,10 +174,14 @@
       "name": "games",
       "index_type": "i64",
       "key_names": [
-        "id", "bet"
+        "id",
+        "player1",
+        "player2"
       ],
       "key_types": [
-        "uint64", "uint64"
+        "uint64",
+        "name",
+        "name"
       ],
       "type": "game"
     },
@@ -185,10 +189,14 @@
       "name": "accounts",
       "index_type": "i64",
       "key_names": [
-        "player", "score", "games"
+        "player",
+        "score",
+        "games"
       ],
       "key_types": [
-        "name", "uint64", "uint64"
+        "name",
+        "uint64",
+        "uint64"
       ],
       "type": "account"
     }
