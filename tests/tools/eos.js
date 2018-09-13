@@ -1,41 +1,19 @@
 import Eos from 'eosjs-api';
 import randomize from 'randomatic';
 import child_process from 'child_process'
+import nodeInterfaceFabric from './nodeInterfaceFabric';
 
 
 const ALICE_PUBLIC = 'EOS79NjptwuiygNmWmGLXTHoK4eUsZZxWgprQZ3rgDdJvkbLFTkSA'
-
-const eos = Eos({
-  httpEndpoint: 'http://127.0.0.1:8888',
-})
-
+const nodeInterface = nodeInterfaceFabric('http://localhost:8888')
+const eos = nodeInterface.eos;
 export default eos;
+export const cleos = nodeInterface.cleos;
 
+export function getAccountName() {
+  return randomize('?', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz.' });
+}
 
-function getAccountName() {
-  return randomize('?', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz' });
-}
-const exec = script => new Promise((resolve, reject) => {
-  child_process.exec(script, err => {
-    if (err) {
-      reject(err)
-    } else {
-      resolve()
-    }
-  })
-})
-const sleep = (delay) => new Promise(resolve => setTimeout(resolve, delay))
-export async function cleos(args, attemp = 0) {
-  try {
-    await exec(`docker exec -i eosio /opt/eosio/bin/cleos -u http://localhost:8888 ${args}`)
-  } catch (e) {
-    if (e.message.indexOf('Transaction took too long') === -1) {
-      throw e
-    } else {
-      await cleos(args, attemp + 1)
-    }
-  }
-}
 
 export async function deployContract() {
   const accountName = getAccountName();

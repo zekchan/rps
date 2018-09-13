@@ -1,8 +1,8 @@
-import { getPlayer } from "./tools/eos";
 import workerFarm from 'worker-farm'
-import eos, { cleos } from "./tools/eos";
+import eos, { cleos, getAccountName } from "./tools/eos";
+import fetch from 'node-fetch'
 
-const BOTS_COUNT = 5;
+const BOTS_COUNT = 7;
 const workers = workerFarm(require.resolve('./startBot'))
 async function clearAllStartedGames() {
   const { rows } = await eos.getTableRows(true, 'rps', 'rps', 'games', undefined, 0, -1, 500)
@@ -14,6 +14,11 @@ async function clearAllStartedGames() {
     }
   }
   console.log('started games found: ', found)
+}
+async function getPlayer() {
+  const name = getAccountName()
+  const resp = await fetch(`http://faucet.cryptokylin.io/create_account?${name}`)
+  const body = await resp.json
 }
 async function start() {
   await clearAllStartedGames()
