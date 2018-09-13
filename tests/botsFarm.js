@@ -2,10 +2,10 @@ import { getPlayer } from "./tools/eos";
 import workerFarm from 'worker-farm'
 import eos, { cleos } from "./tools/eos";
 
-const BOTS_COUNT = 2;
+const BOTS_COUNT = 8;
 const workers = workerFarm(require.resolve('./startBot'))
 async function clearAllStartedGames() {
-  const { rows } = await eos.getTableRows(true, 'rps', 'rps', 'games', undefined, 'rps', -1, 100, 'i64', 3)
+  const { rows } = await eos.getTableRows(true, 'rps', 'rps', 'games', undefined, 0, -1, 500)
   let found = 0;
   for (let i = 0; i < rows.length; i++) {
     if (rows[i].player2 === 'rps') {

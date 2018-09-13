@@ -297,7 +297,7 @@ public:
       auto itr = lower_row;
       while (itr != upper_row)
       {
-        if ((itr->player1 != player) && (itr->bet == bet))
+        if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == _self))
         {
           // нашли открытую игру с нужной ставкой
           games_table_player2.modify(itr, _self, [&](auto &g) {
@@ -309,7 +309,7 @@ public:
         itr++;
       }
       // чекаем upper_row отдельно
-      if ((upper_row != games_table_player2.end()) && (upper_row->bet == bet))
+      if ((upper_row != games_table_player2.end()) && (upper_row->bet == bet) && (upper_row->player2 == _self))
       {
         // нашли открытую игру с нужной ставкой
         games_table_player2.modify(upper_row, _self, [&](auto &g) {

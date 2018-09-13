@@ -13,7 +13,7 @@ export default eos;
 
 
 function getAccountName() {
-  return randomize('a', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz' });
+  return randomize('?', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz' });
 }
 const exec = script => new Promise((resolve, reject) => {
   child_process.exec(script, err => {
