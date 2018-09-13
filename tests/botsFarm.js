@@ -2,7 +2,7 @@ import { getPlayer } from "./tools/eos";
 import workerFarm from 'worker-farm'
 import eos, { cleos } from "./tools/eos";
 
-const BOTS_COUNT = 8;
+const BOTS_COUNT = 5;
 const workers = workerFarm(require.resolve('./startBot'))
 async function clearAllStartedGames() {
   const { rows } = await eos.getTableRows(true, 'rps', 'rps', 'games', undefined, 0, -1, 500)
