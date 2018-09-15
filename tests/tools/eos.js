@@ -11,7 +11,7 @@ export default eos;
 export const cleos = nodeInterface.cleos;
 
 export function getAccountName() {
-  return randomize('?', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz.' });
+  return randomize('?', 12, { chars: '12345abcdefghijklmnopqrstuvwxyz' });
 }
 
 
@@ -64,9 +64,3 @@ export async function deployContract() {
   return accountName;
 }
 
-export async function getPlayer() {
-  const accountName = getAccountName();
-  await cleos(`create account eosio ${accountName} ${ALICE_PUBLIC} ${ALICE_PUBLIC}`)
-  await cleos(`push action eosio.token issue '[ "${accountName}", "1000.0000 EOS", "" ]' -p eosio`)
-  return accountName;
-}
