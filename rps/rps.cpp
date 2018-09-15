@@ -20,7 +20,8 @@ public:
   using contract::contract;
   rps(account_name self) : contract(self),
                            games_table(self, self),
-                           accounts_table(self, self)
+                           accounts_table(self, self),
+                           global_table(self, self)
   {
   }
   const static uint32_t AFK_TIME = 2 * 60; // 2 minutes
@@ -42,6 +43,15 @@ public:
   {
     return eosio::time_point_sec(now() - AFK_TIME) > seen;
   }
+  struct global
+  {
+    uint64_t games;
+    asset tax;
+
+    account_name primary_key() const { return tax.symbol.name(); }
+    EOSLIB_SERIALIZE(global, (games)(tax));
+  };
+  typedef eosio::multi_index<N(global), global> global_index;
 
   // @abi table
   struct game
@@ -92,6 +102,7 @@ public:
 
   games_index games_table;
   accounts_index accounts_table;
+  global_index global_table;
   void handleWinner(account_name winner, const game &game_row, account_name payer)
   {
     auto prize = game_row.bet;
@@ -103,6 +114,9 @@ public:
         N(eosio.token), N(transfer),
         currency::transfer{_self, winner, prize, ""})
         .send();
+    global_table.modify(global_table.begin(), _self, [&](auto &g) {
+      g.tax += asset(tax);
+    });
 
     auto account_row = accounts_table.find(winner);
     if (account_row == accounts_table.end())
@@ -319,8 +333,18 @@ public:
         return;
       }
     }
+    if (global_table.begin() == global_table.end())
+    {
+      global_table.emplace(_self, [&](global &g) {
+        g.games = 0;
+        g.tax = asset(0);
+      });
+    }
+    global_table.modify(global_table.begin(), _self, [&](auto &g) {
+      g.games++;
+    });
     games_table.emplace(_self, [&](game &g) {
-      g.id = games_table.available_primary_key();
+      g.id = global_table.begin()->games;
       g.player1 = player;
       g.player2 = _self;
       g.commitment1 = EMPTY_CHECKSUM;
@@ -342,7 +366,7 @@ public:
     assert_bet(quantity);
     startGame(from, quantity);
   }
-  // tmp function for developing 
+  // tmp function for developing
   void cleartables()
   {
     require_auth(_self);

@@ -8,6 +8,20 @@
       "fields": []
     },
     {
+      "name": "global",
+      "base": "",
+      "field": [
+        {
+          "name": "tax",
+          "type": "asset"
+        },
+        {
+          "name": "games",
+          "type": "uint64"
+        }
+      ]
+    },
+    {
       "name": "game",
       "base": "",
       "fields": [
@@ -209,6 +223,13 @@
         "uint64"
       ],
       "type": "account"
+    },
+    {
+      "name": "global",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "global"
     }
   ],
   "ricardian_clauses": [],
