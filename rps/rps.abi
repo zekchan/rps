@@ -3,6 +3,11 @@
   "types": [],
   "structs": [
     {
+      "name": "empty",
+      "base": "",
+      "fields": []
+    },
+    {
       "name": "game",
       "base": "",
       "fields": [
@@ -166,6 +171,11 @@
     {
       "name": "claimexpired",
       "type": "claimexpired",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "cleartables",
+      "type": "empty",
       "ricardian_contract": ""
     }
   ],

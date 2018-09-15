@@ -342,6 +342,20 @@ public:
     assert_bet(quantity);
     startGame(from, quantity);
   }
+  // tmp function for developing 
+  void cleartables()
+  {
+    require_auth(_self);
+
+    for (auto itr = games_table.begin(); itr != games_table.end();)
+    {
+      itr = games_table.erase(itr);
+    }
+    for (auto itr = accounts_table.begin(); itr != accounts_table.end();)
+    {
+      itr = accounts_table.erase(itr);
+    }
+  }
 };
 
 #undef EOSIO_ABI
@@ -368,4 +382,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables))
