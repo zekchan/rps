@@ -221,10 +221,10 @@ public:
     require_auth(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player2 == _self, "cant cancel game with second player");
+    eosio_assert(game_row->player2 == EMPTY_PLAYER, "cant cancel game with second player");
     eosio_assert(game_row->player1 == player, "only player1 can cancel game");
     auto qnt = game_row->bet;
-    qnt.amount = qnt.amout * (TAX_DENOMINATOR + TAX_NUMERATOR / 2) / TAX_DENOMINATOR;
+    qnt.amount = qnt.amount * (TAX_DENOMINATOR + TAX_NUMERATOR) / TAX_DENOMINATOR;
     action(permission_level{_self, N(active)},
            N(eosio.token), N(transfer),
            currency::transfer{_self, player, qnt, "return bet"})
@@ -338,7 +338,7 @@ public:
     });
   };
   // eosio.token transfer handler
-  void transfer(const account_name from, const account_name to, const asset quantity, const std::string memo)
+  void transfer(const account_name from, const account_name to, asset quantity, const std::string memo)
   {
     require_auth(from);
     if (from == _self)
@@ -347,7 +347,7 @@ public:
       return;
     }
     // считаем что пришла сумма с половиной комиссии
-    quantity.amount = quantity.amount * TAX_DENOMINATOR / (TAX_DENOMINATOR + TAX_NUMERATOR / 2);
+    quantity.amount = quantity.amount * TAX_DENOMINATOR / (TAX_DENOMINATOR + TAX_NUMERATOR);
     assert_bet(quantity);
     startGame(from, quantity);
   }
