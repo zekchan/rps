@@ -43,15 +43,14 @@ public:
   {
     return eosio::time_point_sec(now() - AFK_TIME) > seen;
   }
+  // @abi table
   struct global
   {
     uint64_t games;
-    asset tax;
-
-    account_name primary_key() const { return tax.symbol.name(); }
-    EOSLIB_SERIALIZE(global, (games)(tax));
+    uint64_t primary_key() const { return 0; }
+    EOSLIB_SERIALIZE(global, (games))
   };
-  typedef eosio::multi_index<N(global), global> global_index;
+  typedef eosio::multi_index<N(globalstats), global> global_index;
 
   // @abi table
   struct game
@@ -105,18 +104,21 @@ public:
   global_index global_table;
   void handleWinner(account_name winner, const game &game_row, account_name payer)
   {
-    auto prize = game_row.bet;
-    prize.amount *= 2;
-    uint64_t tax = prize.amount * TAX_NUMERATOR / TAX_DENOMINATOR;
-    prize.amount -= tax;
+    auto quantity = game_row.bet;
+    quantity.amount *= 2;
+    uint64_t tax = quantity.amount * TAX_NUMERATOR / TAX_DENOMINATOR;
+    quantity.amount -= tax;
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
-        currency::transfer{_self, winner, prize, ""})
+        currency::transfer{_self, winner, quantity, ""})
         .send();
-    global_table.modify(global_table.begin(), _self, [&](auto &g) {
-      g.tax += asset(tax);
-    });
+    quantity.amount = tax;
+    action(
+        permission_level{_self, N(active)},
+        N(eosio.token), N(transfer),
+        currency::transfer{_self, N(rpscommision), quantity, ""})
+        .send();
 
     auto account_row = accounts_table.find(winner);
     if (account_row == accounts_table.end())
@@ -333,13 +335,6 @@ public:
         return;
       }
     }
-    if (global_table.begin() == global_table.end())
-    {
-      global_table.emplace(_self, [&](global &g) {
-        g.games = 0;
-        g.tax = asset(0);
-      });
-    }
     global_table.modify(global_table.begin(), _self, [&](auto &g) {
       g.games++;
     });
@@ -379,6 +374,22 @@ public:
     {
       itr = accounts_table.erase(itr);
     }
+    for (auto itr = global_table.begin(); itr != global_table.end();)
+    {
+      itr = global_table.erase(itr);
+    }
+  }
+
+  // tmp function for developing
+  void inittables()
+  {
+    require_auth(_self);
+    if (global_table.begin() == global_table.end())
+    {
+      global_table.emplace(_self, [&](global &g) {
+        g.games = 0;
+      });
+    }
   }
 };
 
@@ -406,4 +417,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables)(inittables))

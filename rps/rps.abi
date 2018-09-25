@@ -8,13 +8,9 @@
       "fields": []
     },
     {
-      "name": "global",
+      "name": "globalstats",
       "base": "",
       "field": [
-        {
-          "name": "tax",
-          "type": "asset"
-        },
         {
           "name": "games",
           "type": "uint64"
@@ -191,6 +187,11 @@
       "name": "cleartables",
       "type": "empty",
       "ricardian_contract": ""
+    },
+    {
+      "name": "inittables",
+      "type": "empty",
+      "ricardian_contract": ""
     }
   ],
   "tables": [
@@ -225,11 +226,15 @@
       "type": "account"
     },
     {
-      "name": "global",
+      "name": "globalstats",
       "index_type": "i64",
-      "key_names": [],
-      "key_types": [],
-      "type": "global"
+      "key_names": [
+        "game"
+      ],
+      "key_types": [
+        "uint64"
+      ],
+      "type": "globalstats"
     }
   ],
   "ricardian_clauses": [],
