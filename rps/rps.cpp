@@ -11,9 +11,9 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
 uint8_t const TAX_NUMERATOR = 2;
 uint8_t const TAX_DENOMINATOR = 100;
+uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
 account_name const EMPTY_PLAYER = N(.);
 class rps : public eosio::contract
 {
@@ -108,7 +108,6 @@ public:
     auto quantity = game_row.bet;
     quantity.amount *= 2;
     uint64_t tax = quantity.amount * TAX_NUMERATOR / TAX_DENOMINATOR;
-    quantity.amount -= tax;
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
@@ -224,10 +223,11 @@ public:
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(game_row->player2 == _self, "cant cancel game with second player");
     eosio_assert(game_row->player1 == player, "only player1 can cancel game");
-    action(
-        permission_level{_self, N(active)},
-        N(eosio.token), N(transfer),
-        currency::transfer{_self, player, game_row->bet, "return bet"})
+    auto qnt = game_row->bet;
+    qnt.amount = qnt.amout * (TAX_DENOMINATOR + TAX_NUMERATOR / 2) / TAX_DENOMINATOR;
+    action(permission_level{_self, N(active)},
+           N(eosio.token), N(transfer),
+           currency::transfer{_self, player, qnt, "return bet"})
         .send();
     games_table.erase(game_row); // удаляем строчку с игрой
   }
@@ -338,7 +338,7 @@ public:
     });
   };
   // eosio.token transfer handler
-  void transfer(const account_name from, const account_name to, const asset &quantity, const std::string memo)
+  void transfer(const account_name from, const account_name to, const asset quantity, const std::string memo)
   {
     require_auth(from);
     if (from == _self)
@@ -346,6 +346,8 @@ public:
       // вывод токенов - просто разрещаем (В будующем надо добавить еще логики)
       return;
     }
+    // считаем что пришла сумма с половиной комиссии
+    quantity.amount = quantity.amount * TAX_DENOMINATOR / (TAX_DENOMINATOR + TAX_NUMERATOR / 2);
     assert_bet(quantity);
     startGame(from, quantity);
   }
