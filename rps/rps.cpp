@@ -14,6 +14,7 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
 uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
 uint8_t const TAX_NUMERATOR = 2;
 uint8_t const TAX_DENOMINATOR = 100;
+account_name const EMPTY_PLAYER = N(.);
 class rps : public eosio::contract
 {
 public:
@@ -196,7 +197,7 @@ public:
     require_auth(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player2 != _self, "player2 should connect to game");
+    eosio_assert(game_row->player2 != EMPTY_PLAYER, "player2 should connect to game");
 
     if (player == game_row->player1)
     {
@@ -306,11 +307,11 @@ public:
       Итерируемся между ними и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
     */
 
-    auto itr = games_table_player2.lower_bound(_self);
-    auto endItr = games_table_player2.lower_bound(_self + 1);
+    auto itr = games_table_player2.lower_bound(EMPTY_PLAYER);
+    auto endItr = games_table_player2.lower_bound(EMPTY_PLAYER + 1);
     while (itr != endItr)
     {
-      if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == _self))
+      if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == EMPTY_PLAYER))
       {
         // нашли открытую игру с нужной ставкой
         games_table_player2.modify(itr, _self, [&](auto &g) {
@@ -328,7 +329,7 @@ public:
     games_table.emplace(_self, [&](game &g) {
       g.id = global_table.begin()->games;
       g.player1 = player;
-      g.player2 = _self;
+      g.player2 = EMPTY_PLAYER;
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
       g.lastseen1 = g.lastseen2 = eosio::time_point_sec(0);
