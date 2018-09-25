@@ -301,40 +301,27 @@ public:
   {
     auto games_table_player2 = games_table.get_index<N(player2)>(); // Смотрим через by_player2 индекс
     /*
-      Находим первую и последню игру, с пустым player2
+      Находим первую игру с пустым player2, и игру следующую за последним (может быть конец)
       Таких игр может быть максимум количество возможных ставок (Мало)
-      Итерируемся по ним и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
+      Итерируемся между ними и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
     */
 
-    auto lower_row = games_table_player2.lower_bound(_self);
-    auto upper_row = games_table_player2.upper_bound(_self);
-    if (lower_row != games_table_player2.end())
+    auto itr = games_table_player2.lower_bound(_self);
+    auto endItr = games_table_player2.lower_bound(_self + 1);
+    while (itr != endItr)
     {
-      auto itr = lower_row;
-      while (itr != upper_row)
-      {
-        if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == _self))
-        {
-          // нашли открытую игру с нужной ставкой
-          games_table_player2.modify(itr, _self, [&](auto &g) {
-            g.player2 = player;
-            g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
-          });
-          return;
-        }
-        itr++;
-      }
-      // чекаем upper_row отдельно
-      if ((upper_row != games_table_player2.end()) && (upper_row->bet == bet) && (upper_row->player2 == _self))
+      if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == _self))
       {
         // нашли открытую игру с нужной ставкой
-        games_table_player2.modify(upper_row, _self, [&](auto &g) {
+        games_table_player2.modify(itr, _self, [&](auto &g) {
           g.player2 = player;
           g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
         });
         return;
       }
+      itr++;
     }
+
     global_table.modify(global_table.begin(), _self, [&](auto &g) {
       g.games++;
     });
