@@ -301,6 +301,9 @@ public:
       Итерируемся между ними и ищем игру с нашей ствкой - если нашли, заходим в нее, если нет - создаем новую
     */
 
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.deposit = asset(0, S(4, EOS));
+    });
     auto itr = games_table_player2.lower_bound(EMPTY_PLAYER);
     auto endItr = games_table_player2.lower_bound(EMPTY_PLAYER + 1);
     while (itr != endItr)
@@ -329,9 +332,6 @@ public:
       g.afksnapshot = eosio::time_point_sec(0);
       g.bet = bet;
       g.round = 1;
-    });
-    accounts_table.modify(account_row, 0, [&](account &a) {
-      a.deposit = asset(0, S(4, EOS));
     });
   };
   //@abi action
