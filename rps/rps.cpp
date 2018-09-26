@@ -289,6 +289,8 @@ public:
   // transfer action
   void startGame(const account_name player, const asset bet)
   {
+    auto account_row = accounts_table.find(player);
+    eosio_assert(account_row != accounts_table.end(), "player shoud register");
     auto games_table_player2 = games_table.get_index<N(player2)>(); // Смотрим через by_player2 индекс
     /*
       Находим первую игру с пустым player2, и игру следующую за последним (может быть конец)
