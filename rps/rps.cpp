@@ -57,6 +57,7 @@ public:
   struct game
   {
     uint64_t id;
+    uint8_t round;
     account_name player1;
     account_name player2;
     // TODO: store only amount of bet for using less RAM
@@ -65,14 +66,12 @@ public:
     checksum256 commitment2;
     std::string fight1;
     std::string fight2;
-    eosio::time_point_sec lastseen1;
-    eosio::time_point_sec lastseen2;
-    uint8_t round;
+    eosio::time_point_sec afksnapshot;
     uint64_t primary_key() const { return id; };
     account_name by_player2() const { return player2; };
     account_name by_player1() const { return player1; };
 
-    EOSLIB_SERIALIZE(game, (id)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(lastseen1)(lastseen2)(round))
+    EOSLIB_SERIALIZE(game, (id)(round)(player1)(player2)(bet)(commitment1)(commitment2)(fight1)(fight2)(afksnapshot))
   };
 
   typedef eosio::multi_index<N(games), game,
@@ -137,20 +136,6 @@ public:
       a.winstreak = 0;
     });
   }
-  void createAccountRow(account_name player)
-  {
-    auto account_row = accounts_table.find(player);
-    if (account_row == accounts_table.end())
-    {
-      accounts_table.emplace(player, [&](account &a) {
-        a.player = player;
-        a.games = 0;
-        a.wins = 0;
-        a.winstreak = 0;
-        a.score = 0;
-      });
-    }
-  }
   void playGame(uint64_t gameid)
   {
     // play game
@@ -169,7 +154,7 @@ public:
         g.fight2 = "";
         g.commitment1 = EMPTY_CHECKSUM;
         g.commitment2 = EMPTY_CHECKSUM;
-        g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now());
+        g.afksnapshot = eosio::time_point_sec(now());
         g.round++;
       });
     }
@@ -183,23 +168,29 @@ public:
   void claimexpired(const account_name player, uint64_t gameid)
   {
     require_auth(player);
-    createAccountRow(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
-    eosio_assert(game_row->player2 != EMPTY_PLAYER, "player2 should connect to game");
+    eosio_assert(game_row->player2 != EMPTY_PLAYER, "game doesnt start");
+    eosio_assert(expired(game_row->afksnapshot), "not afk");
 
     if (player == game_row->player1)
     {
-      eosio_assert(game_row->fight2 == "", "player2 already revealed his move");
-      eosio_assert(expired(game_row->lastseen2), "player not afk");
+      eosio_assert(
+          ((game_row->fight1 != "") && (game_row->fight2 == "")) ||
+              (!(game_row->commitment1 == EMPTY_CHECKSUM) && (game_row->commitment2 == EMPTY_CHECKSUM)),
+          "player2 not afk");
+
       handleWinner(player, *game_row);
       handleLooser(game_row->player2);
       games_table.erase(game_row); // удаляем строчку с игрой
     }
     else if (player == game_row->player2)
     {
-      eosio_assert(game_row->fight1 == "", "player1 already revealed his move");
-      eosio_assert(expired(game_row->lastseen1), "player not afk");
+      eosio_assert(
+          ((game_row->fight2 != "") && (game_row->fight1 == "")) ||
+              (!(game_row->commitment2 == EMPTY_CHECKSUM) && (game_row->commitment1 == EMPTY_CHECKSUM)),
+          "player1 not afk");
+
       handleWinner(player, *game_row);
       handleLooser(game_row->player1);
       games_table.erase(game_row); // удаляем строчку с игрой
@@ -213,7 +204,6 @@ public:
   void cancelgame(const account_name player, uint64_t gameid)
   {
     require_auth(player);
-    createAccountRow(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(game_row->player2 == EMPTY_PLAYER, "cant cancel game with second player");
@@ -244,18 +234,16 @@ public:
     {
       eosio_assert(game_row->fight1 == "", "already revealed");
       assert_sha256(data, sizeof(data), (const checksum256 *)&game_row->commitment1);
-      games_table.modify(game_row, player, [&](auto &g) {
+      games_table.modify(game_row, 0, [&](auto &g) {
         g.fight1 = fight;
-        g.lastseen1 = eosio::time_point_sec(now());
       });
     }
     else if (player == game_row->player2)
     {
       eosio_assert(game_row->fight2 == "", "already revealed");
       assert_sha256(data, sizeof(data), &game_row->commitment2);
-      games_table.modify(game_row, player, [&](auto &g) {
+      games_table.modify(game_row, 0, [&](auto &g) {
         g.fight2 = fight;
-        g.lastseen2 = eosio::time_point_sec(now());
       });
     }
     else
@@ -274,24 +262,29 @@ public:
     if (player == game_row->player1)
     {
       eosio_assert(game_row->commitment1 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, player, [&](auto &g) {
+      games_table.modify(game_row, 0, [&](auto &g) {
         g.commitment1 = commitment;
-        g.lastseen1 = eosio::time_point_sec(now());
+        if (!(game_row->commitment2 == EMPTY_CHECKSUM))
+        {
+          g.afksnapshot = eosio::time_point_sec(now());
+        }
       });
     }
     else if (player == game_row->player2)
     {
       eosio_assert(game_row->commitment2 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, player, [&](auto &g) {
+      games_table.modify(game_row, 0, [&](auto &g) {
         g.commitment2 = commitment;
-        g.lastseen2 = eosio::time_point_sec(now());
+        if (!(game_row->commitment1 == EMPTY_CHECKSUM))
+        {
+          g.afksnapshot = eosio::time_point_sec(now());
+        }
       });
     }
     else
     {
       eosio_assert(false, "wrong player");
     }
-    createAccountRow(player);
   }
   // transfer action
   void startGame(const account_name player, const asset bet)
@@ -312,7 +305,7 @@ public:
         // нашли открытую игру с нужной ставкой
         games_table_player2.modify(itr, 0, [&](auto &g) {
           g.player2 = player;
-          g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
+          g.afksnapshot = eosio::time_point_sec(now());
         });
         return;
       }
@@ -328,11 +321,25 @@ public:
       g.player2 = EMPTY_PLAYER;
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
-      g.lastseen1 = g.lastseen2 = eosio::time_point_sec(0);
+      g.afksnapshot = eosio::time_point_sec(0);
       g.bet = bet;
       g.round = 1;
     });
   };
+  //@abi action
+  void connect(account_name player)
+  {
+    require_auth(player);
+    auto account_row = accounts_table.find(player);
+    eosio_assert(account_row == accounts_table.end(), "already registered");
+    accounts_table.emplace(player, [&](account &a) {
+      a.player = player;
+      a.games = 0;
+      a.wins = 0;
+      a.winstreak = 0;
+      a.score = 0;
+    });
+  }
   // eosio.token transfer handler
   void transfer(const account_name from, const account_name to, asset quantity, const std::string memo)
   {
@@ -403,4 +410,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables)(inittables))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables)(inittables)(connect))

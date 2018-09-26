@@ -26,6 +26,10 @@
           "type": "uint64"
         },
         {
+          "name": "round",
+          "type": "uint8"
+        },
+        {
           "name": "player1",
           "type": "name"
         },
@@ -54,16 +58,8 @@
           "type": "string"
         },
         {
-          "name": "lastseen1",
+          "name": "afksnapshot",
           "type": "time_point_sec"
-        },
-        {
-          "name": "lastseen2",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "round",
-          "type": "uint8"
         }
       ]
     },
@@ -160,6 +156,16 @@
           "type": "uint64"
         }
       ]
+    },
+    {
+      "name": "connect",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        }
+      ]
     }
   ],
   "actions": [
@@ -181,6 +187,11 @@
     {
       "name": "claimexpired",
       "type": "claimexpired",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "connect",
+      "type": "connect",
       "ricardian_contract": ""
     },
     {
