@@ -369,10 +369,12 @@ public:
     {
       itr = accounts_table.erase(itr);
     }
+    /*
     for (auto itr = global_table.begin(); itr != global_table.end();)
     {
       itr = global_table.erase(itr);
     }
+    */
   }
 
   // tmp function for developing
