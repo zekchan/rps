@@ -190,6 +190,7 @@ public:
 
     if (player == game_row->player1)
     {
+      eosio_assert(game_row->fight2 == "", "player2 already revealed his move");
       eosio_assert(expired(game_row->lastseen2), "player not afk");
       handleWinner(player, *game_row);
       handleLooser(game_row->player2);
@@ -197,6 +198,7 @@ public:
     }
     else if (player == game_row->player2)
     {
+      eosio_assert(game_row->fight1 == "", "player1 already revealed his move");
       eosio_assert(expired(game_row->lastseen1), "player not afk");
       handleWinner(player, *game_row);
       handleLooser(game_row->player1);
