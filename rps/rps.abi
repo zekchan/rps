@@ -86,6 +86,10 @@
         {
           "name": "score",
           "type": "uint32"
+        },
+        {
+          "name": "deposit",
+          "type": "asset"
         }
       ]
     },
@@ -166,6 +170,16 @@
           "type": "name"
         }
       ]
+    },
+    {
+      "name": "startgame",
+      "base": "",
+      "fields": [
+        {
+          "name": "player",
+          "type": "name"
+        }
+      ]
     }
   ],
   "actions": [
@@ -192,6 +206,11 @@
     {
       "name": "connect",
       "type": "connect",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "startgame",
+      "type": "startgame",
       "ricardian_contract": ""
     },
     {

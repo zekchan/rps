@@ -87,11 +87,12 @@ public:
     uint32_t wins;
     uint8_t winstreak;
     uint32_t score;
+    asset deposit;
     account_name primary_key() const { return player; }
     uint64_t by_score() const { return 0xffffffffffffffff - score; }
     uint64_t by_games() const { return 0xffffffffffffffff - games; }
 
-    EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score))
+    EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score)(deposit))
   };
 
   typedef eosio::multi_index<N(accounts), account,
@@ -286,11 +287,13 @@ public:
       eosio_assert(false, "wrong player");
     }
   }
-  // transfer action
-  void startGame(const account_name player, const asset bet)
+  // @abi action
+  void startgame(const account_name player)
   {
     auto account_row = accounts_table.find(player);
     eosio_assert(account_row != accounts_table.end(), "player shoud register");
+    auto bet = account_row->deposit;
+    eosio_assert(bet.amount > 0, "player shoud have deposit");
     auto games_table_player2 = games_table.get_index<N(player2)>(); // Смотрим через by_player2 индекс
     /*
       Находим первую игру с пустым player2, и игру следующую за последним (может быть конец)
@@ -317,7 +320,7 @@ public:
     global_table.modify(global_table.begin(), 0, [&](auto &g) {
       g.games++;
     });
-    games_table.emplace(_self, [&](game &g) {
+    games_table.emplace(player, [&](game &g) {
       g.id = global_table.begin()->games;
       g.player1 = player;
       g.player2 = EMPTY_PLAYER;
@@ -326,6 +329,9 @@ public:
       g.afksnapshot = eosio::time_point_sec(0);
       g.bet = bet;
       g.round = 1;
+    });
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.deposit = asset(0, S(4, EOS));
     });
   };
   //@abi action
@@ -340,6 +346,7 @@ public:
       a.wins = 0;
       a.winstreak = 0;
       a.score = 0;
+      a.deposit = asset(0, S(4, EOS));
     });
   }
   // eosio.token transfer handler
@@ -351,10 +358,17 @@ public:
       // вывод токенов - просто разрещаем (В будующем надо добавить еще логики)
       return;
     }
+
+    auto account_row = accounts_table.find(from);
+    eosio_assert(account_row != accounts_table.end(), "player shoud register");
+    eosio_assert(account_row->deposit.amount == 0, "shoud be only one deposit");
     // считаем что пришла сумма с половиной комиссии
     quantity.amount = quantity.amount * TAX_DENOMINATOR / (TAX_DENOMINATOR + TAX_NUMERATOR);
     assert_bet(quantity);
-    startGame(from, quantity);
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.deposit = quantity;
+    });
+    // startGame(from, quantity);
   }
   // tmp function for developing
   void cleartables()
@@ -414,4 +428,4 @@ public:
       }                                                                                                                  \
     }                                                                                                                    \
   }
-EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables)(inittables)(connect))
+EOSIO_ABI(rps, (transfer)(commitmove)(revealmove)(cancelgame)(claimexpired)(cleartables)(inittables)(connect)(startgame))
