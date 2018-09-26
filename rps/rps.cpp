@@ -25,7 +25,7 @@ public:
                            global_table(self, self)
   {
   }
-  const static uint32_t AFK_TIME = 2 * 60; // 2 minutes
+  const static uint32_t AFK_TIME = 30; // 30 seconds
   static void assert_bet(asset bet)
   {
     eosio_assert(bet.symbol == S(4, EOS), "only accepts EOS for deposits");
@@ -308,7 +308,7 @@ public:
       if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == EMPTY_PLAYER))
       {
         // нашли открытую игру с нужной ставкой
-        games_table_player2.modify(itr, _self, [&](auto &g) {
+        games_table_player2.modify(itr, 0, [&](auto &g) {
           g.player2 = player;
           g.lastseen1 = g.lastseen2 = eosio::time_point_sec(now()); // начинаем отсчет для обоих с этого момента
         });
@@ -317,7 +317,7 @@ public:
       itr++;
     }
 
-    global_table.modify(global_table.begin(), _self, [&](auto &g) {
+    global_table.modify(global_table.begin(), 0, [&](auto &g) {
       g.games++;
     });
     games_table.emplace(_self, [&](game &g) {
