@@ -329,7 +329,7 @@ public:
       g.player2 = EMPTY_PLAYER;
       g.commitment1 = EMPTY_CHECKSUM;
       g.commitment2 = EMPTY_CHECKSUM;
-      g.afksnapshot = eosio::time_point_sec(0);
+      g.afksnapshot = eosio::time_point_sec(now());
       g.bet = bet;
       g.round = 1;
     });
@@ -395,6 +395,8 @@ public:
   void inittables()
   {
     require_auth(_self);
+    print(EMPTY_PLAYER);
+    print(name{EMPTY_PLAYER});
     if (global_table.begin() == global_table.end())
     {
       global_table.emplace(_self, [&](global &g) {
