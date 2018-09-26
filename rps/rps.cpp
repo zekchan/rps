@@ -183,6 +183,7 @@ public:
   void claimexpired(const account_name player, uint64_t gameid)
   {
     require_auth(player);
+    createAccountRow(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(game_row->player2 != EMPTY_PLAYER, "player2 should connect to game");
@@ -210,6 +211,7 @@ public:
   void cancelgame(const account_name player, uint64_t gameid)
   {
     require_auth(player);
+    createAccountRow(player);
     auto game_row = games_table.find(gameid);
     eosio_assert(game_row != games_table.end(), "not found game");
     eosio_assert(game_row->player2 == EMPTY_PLAYER, "cant cancel game with second player");
@@ -259,7 +261,6 @@ public:
       eosio_assert(false, "wrong player");
     }
 
-    createAccountRow(player);
     playGame(gameid);
   }
   // @abi action
@@ -288,6 +289,7 @@ public:
     {
       eosio_assert(false, "wrong player");
     }
+    createAccountRow(player);
   }
   // transfer action
   void startGame(const account_name player, const asset bet)
