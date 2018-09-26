@@ -103,7 +103,7 @@ public:
   games_index games_table;
   accounts_index accounts_table;
   global_index global_table;
-  void handleWinner(account_name winner, const game &game_row, account_name payer)
+  void handleWinner(account_name winner, const game &game_row)
   {
     auto quantity = game_row.bet;
     quantity.amount *= 2;
@@ -121,48 +121,37 @@ public:
         .send();
 
     auto account_row = accounts_table.find(winner);
-    if (account_row == accounts_table.end())
-    {
-      accounts_table.emplace(payer, [&](account &a) {
-        a.player = winner;
-        a.games = 1;
-        a.wins = 1;
-        a.winstreak = 1;
-        a.score += a.winstreak;
-      });
-    }
-    else
-    {
-      accounts_table.modify(account_row, payer, [&](account &a) {
-        a.games++;
-        a.wins++;
-        a.winstreak++;
-        a.score += a.winstreak;
-      });
-    }
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.games++;
+      a.wins++;
+      a.winstreak++;
+      a.score += a.winstreak;
+    });
   }
-  void handleLooser(account_name looser, account_name payer)
+  void handleLooser(account_name looser)
   {
     auto account_row = accounts_table.find(looser);
+
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.games++;
+      a.winstreak = 0;
+    });
+  }
+  void createAccountRow(account_name player)
+  {
+    auto account_row = accounts_table.find(player);
     if (account_row == accounts_table.end())
     {
-      accounts_table.emplace(payer, [&](account &a) {
-        a.player = looser;
-        a.games = 1;
+      accounts_table.emplace(player, [&](account &a) {
+        a.player = player;
+        a.games = 0;
         a.wins = 0;
         a.winstreak = 0;
         a.score = 0;
       });
     }
-    else
-    {
-      accounts_table.modify(account_row, payer, [&](account &a) {
-        a.games++;
-        a.winstreak = 0;
-      });
-    }
   }
-  void playGame(uint64_t gameid, account_name payer)
+  void playGame(uint64_t gameid)
   {
     // play game
     auto game_row = games_table.find(gameid);
@@ -175,7 +164,7 @@ public:
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
-      return games_table.modify(game_row, payer, [&](auto &g) {
+      return games_table.modify(game_row, 0, [&](auto &g) {
         g.fight1 = "";
         g.fight2 = "";
         g.commitment1 = EMPTY_CHECKSUM;
@@ -186,8 +175,8 @@ public:
     }
     auto winner = (result == 1) ? game_row->player1 : game_row->player2;
     auto looser = (result == 2) ? game_row->player1 : game_row->player2;
-    handleWinner(winner, *game_row, payer);
-    handleLooser(looser, payer);
+    handleWinner(winner, *game_row);
+    handleLooser(looser);
     games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
@@ -201,13 +190,15 @@ public:
     if (player == game_row->player1)
     {
       eosio_assert(expired(game_row->lastseen2), "player not afk");
-      handleWinner(player, *game_row, player);
+      handleWinner(player, *game_row);
+      handleLooser(game_row->player2);
       games_table.erase(game_row); // удаляем строчку с игрой
     }
     else if (player == game_row->player2)
     {
       eosio_assert(expired(game_row->lastseen1), "player not afk");
-      handleWinner(player, *game_row, player);
+      handleWinner(player, *game_row);
+      handleLooser(game_row->player1);
       games_table.erase(game_row); // удаляем строчку с игрой
     }
     else
@@ -268,7 +259,8 @@ public:
       eosio_assert(false, "wrong player");
     }
 
-    playGame(gameid, player);
+    createAccountRow(player);
+    playGame(gameid);
   }
   // @abi action
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
