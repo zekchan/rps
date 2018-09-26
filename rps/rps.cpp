@@ -395,8 +395,6 @@ public:
   void inittables()
   {
     require_auth(_self);
-    print(EMPTY_PLAYER);
-    print(name{EMPTY_PLAYER});
     if (global_table.begin() == global_table.end())
     {
       global_table.emplace(_self, [&](global &g) {
