@@ -137,7 +137,7 @@ public:
       a.winstreak = 0;
     });
   }
-  void playGame(uint64_t gameid)
+  void playGame(uint64_t gameid, account_name payer)
   {
     // play game
     auto game_row = games_table.find(gameid);
@@ -150,7 +150,7 @@ public:
 
     if (result == 0)
     { // если ничья - обнуляем ходы и пусть игроки ходят заново
-      return games_table.modify(game_row, 0, [&](auto &g) {
+      return games_table.modify(game_row, payer, [&](auto &g) {
         g.fight1 = "";
         g.fight2 = "";
         g.commitment1 = EMPTY_CHECKSUM;
@@ -235,7 +235,7 @@ public:
     {
       eosio_assert(game_row->fight1 == "", "already revealed");
       assert_sha256(data, sizeof(data), (const checksum256 *)&game_row->commitment1);
-      games_table.modify(game_row, 0, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.fight1 = fight;
       });
     }
@@ -243,7 +243,7 @@ public:
     {
       eosio_assert(game_row->fight2 == "", "already revealed");
       assert_sha256(data, sizeof(data), &game_row->commitment2);
-      games_table.modify(game_row, 0, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.fight2 = fight;
       });
     }
@@ -252,7 +252,7 @@ public:
       eosio_assert(false, "wrong player");
     }
 
-    playGame(gameid);
+    playGame(gameid, player);
   }
   // @abi action
   void commitmove(const account_name player, uint64_t gameid, const checksum256 &commitment)
@@ -263,7 +263,7 @@ public:
     if (player == game_row->player1)
     {
       eosio_assert(game_row->commitment1 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, 0, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.commitment1 = commitment;
         if (!(game_row->commitment2 == EMPTY_CHECKSUM))
         {
@@ -274,7 +274,7 @@ public:
     else if (player == game_row->player2)
     {
       eosio_assert(game_row->commitment2 == EMPTY_CHECKSUM, "already commited");
-      games_table.modify(game_row, 0, [&](auto &g) {
+      games_table.modify(game_row, player, [&](auto &g) {
         g.commitment2 = commitment;
         if (!(game_row->commitment1 == EMPTY_CHECKSUM))
         {
@@ -311,7 +311,7 @@ public:
       if ((itr->player1 != player) && (itr->bet == bet) && (itr->player2 == EMPTY_PLAYER))
       {
         // нашли открытую игру с нужной ставкой
-        games_table_player2.modify(itr, 0, [&](auto &g) {
+        games_table_player2.modify(itr, player, [&](auto &g) {
           g.player2 = player;
           g.afksnapshot = eosio::time_point_sec(now());
         });
