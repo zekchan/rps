@@ -1,7 +1,6 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/crypto.h>
 #include <eosiolib/asset.hpp>
-#include <eosiolib/currency.hpp>
 #include <eosiolib/time.hpp>
 #include <string>
 #include "gamerules.cpp"
@@ -114,13 +113,13 @@ public:
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
-        currency::transfer{_self, winner, quantity, ""})
+        std::make_tuple(_self, winner, quantity, ""))
         .send();
     quantity.amount = tax;
     action(
         permission_level{_self, N(active)},
         N(eosio.token), N(transfer),
-        currency::transfer{_self, N(rpscommision), quantity, ""})
+        std::make_tuple(_self, N(rpscommision), quantity, ""))
         .send();
 
     auto account_row = accounts_table.find(winner);
@@ -219,7 +218,7 @@ public:
     qnt.amount = qnt.amount * (TAX_DENOMINATOR + TAX_NUMERATOR) / TAX_DENOMINATOR;
     action(permission_level{_self, N(active)},
            N(eosio.token), N(transfer),
-           currency::transfer{_self, player, qnt, "return bet"})
+           std::make_tuple(_self, player, qnt, "return bet"))
         .send();
     games_table.erase(game_row); // удаляем строчку с игрой
 
