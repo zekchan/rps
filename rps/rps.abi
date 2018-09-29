@@ -10,7 +10,7 @@
     {
       "name": "globalstats",
       "base": "",
-      "field": [
+      "fields": [
         {
           "name": "games",
           "type": "uint64"
