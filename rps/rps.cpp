@@ -14,6 +14,7 @@ const checksum256 EMPTY_CHECKSUM = {0, 0, 0, 0, 0, 0, 0, 0,
 uint8_t const TAX_NUMERATOR = 2;
 uint8_t const TAX_DENOMINATOR = 100;
 uint64_t const AVAILEBLE_AMOUNTS[5] = {10000, 20000, 30000, 40000, 50000};
+uint8_t const MAX_GAMES = 3;
 account_name const EMPTY_PLAYER = N(.);
 class rps : public eosio::contract
 {
@@ -78,25 +79,27 @@ public:
                              indexed_by<N(player1), const_mem_fun<game, account_name, &game::by_player1>>,
                              indexed_by<N(player2), const_mem_fun<game, account_name, &game::by_player2>>>
       games_index;
-
+  struct gameresult
+  {
+    uint64_t id;
+    uint8_t result;
+  };
   // @abi table
   struct account
   {
     account_name player;
     uint32_t games;
     uint32_t wins;
-    uint8_t winstreak;
-    uint32_t score;
     asset deposit;
+    std::vector<gameresult> lastgames;
+    uint8_t openedgames;
     account_name primary_key() const { return player; }
-    uint64_t by_score() const { return 0xffffffffffffffff - score; }
     uint64_t by_games() const { return 0xffffffffffffffff - games; }
 
-    EOSLIB_SERIALIZE(account, (player)(games)(wins)(winstreak)(score)(deposit))
+    EOSLIB_SERIALIZE(account, (player)(games)(wins)(deposit)(lastgames)(openedgames))
   };
 
   typedef eosio::multi_index<N(accounts), account,
-                             indexed_by<N(score), const_mem_fun<account, uint64_t, &account::by_score>>,
                              indexed_by<N(games), const_mem_fun<account, uint64_t, &account::by_games>>>
       accounts_index;
 
@@ -124,17 +127,20 @@ public:
     accounts_table.modify(account_row, 0, [&](account &a) {
       a.games++;
       a.wins++;
-      a.winstreak++;
-      a.score += a.winstreak;
+      a.openedgames--;
+      a.lastgames.erase(a.lastgames.begin());
+      a.lastgames.push_back({game_row.id, 1});
     });
   }
-  void handleLooser(account_name looser)
+  void handleLooser(account_name looser, const game &game_row)
   {
     auto account_row = accounts_table.find(looser);
 
     accounts_table.modify(account_row, 0, [&](account &a) {
       a.games++;
-      a.winstreak = 0;
+      a.openedgames--;
+      a.lastgames.erase(a.lastgames.begin());
+      a.lastgames.push_back(gameresult{game_row.id, 2});
     });
   }
   void playGame(uint64_t gameid, account_name payer)
@@ -162,7 +168,7 @@ public:
     auto winner = (result == 1) ? game_row->player1 : game_row->player2;
     auto looser = (result == 2) ? game_row->player1 : game_row->player2;
     handleWinner(winner, *game_row);
-    handleLooser(looser);
+    handleLooser(looser, *game_row);
     games_table.erase(game_row); // удаляем строчку с игрой
   }
   // @abi action
@@ -182,7 +188,7 @@ public:
           "player2 not afk");
 
       handleWinner(player, *game_row);
-      handleLooser(game_row->player2);
+      handleLooser(game_row->player2, *game_row);
       games_table.erase(game_row); // удаляем строчку с игрой
     }
     else if (player == game_row->player2)
@@ -193,7 +199,7 @@ public:
           "player1 not afk");
 
       handleWinner(player, *game_row);
-      handleLooser(game_row->player1);
+      handleLooser(game_row->player1, *game_row);
       games_table.erase(game_row); // удаляем строчку с игрой
     }
     else
@@ -216,6 +222,11 @@ public:
            currency::transfer{_self, player, qnt, "return bet"})
         .send();
     games_table.erase(game_row); // удаляем строчку с игрой
+
+    auto account_row = accounts_table.find(player);
+    accounts_table.modify(account_row, 0, [&](account &a) {
+      a.openedgames--;
+    });
   }
   // @abi action
   void revealmove(const account_name player, uint64_t gameid, std::string fight, std::string secret)
@@ -302,7 +313,8 @@ public:
     */
 
     accounts_table.modify(account_row, 0, [&](account &a) {
-      a.deposit = asset(0, S(4, EOS));
+      a.deposit = asset(0);
+      a.openedgames++;
     });
     auto itr = games_table_player2.lower_bound(EMPTY_PLAYER);
     auto endItr = games_table_player2.lower_bound(EMPTY_PLAYER + 1);
@@ -342,11 +354,10 @@ public:
     eosio_assert(account_row == accounts_table.end(), "already registered");
     accounts_table.emplace(player, [&](account &a) {
       a.player = player;
-      a.games = 0;
-      a.wins = 0;
-      a.winstreak = 0;
-      a.score = 0;
-      a.deposit = asset(0, S(4, EOS));
+      for (auto i = 0; i < MAX_GAMES; i++)
+      {
+        a.lastgames.push_back(gameresult{0, 0});
+      }
     });
   }
   // eosio.token transfer handler
@@ -362,6 +373,7 @@ public:
     auto account_row = accounts_table.find(from);
     eosio_assert(account_row != accounts_table.end(), "player shoud register");
     eosio_assert(account_row->deposit.amount == 0, "shoud be only one deposit");
+    eosio_assert(account_row->openedgames < MAX_GAMES, "riached max opened games");
     // считаем что пришла сумма с половиной комиссии
     quantity.amount = quantity.amount * TAX_DENOMINATOR / (TAX_DENOMINATOR + TAX_NUMERATOR);
     assert_bet(quantity);

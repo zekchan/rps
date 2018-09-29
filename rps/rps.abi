@@ -64,6 +64,20 @@
       ]
     },
     {
+      "name": "gameresult",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "result",
+          "type": "uint8"
+        }
+      ]
+    },
+    {
       "name": "account",
       "base": "",
       "fields": [
@@ -80,16 +94,16 @@
           "type": "uint32"
         },
         {
-          "name": "winstreak",
-          "type": "uint8"
-        },
-        {
-          "name": "score",
-          "type": "uint32"
-        },
-        {
           "name": "deposit",
           "type": "asset"
+        },
+        {
+          "name": "lastgames",
+          "type": "gameresult[]"
+        },
+        {
+          "name": "openedgames",
+          "type": "uint8"
         }
       ]
     },
@@ -245,12 +259,10 @@
       "index_type": "i64",
       "key_names": [
         "player",
-        "score",
         "games"
       ],
       "key_types": [
         "name",
-        "uint64",
         "uint64"
       ],
       "type": "account"
